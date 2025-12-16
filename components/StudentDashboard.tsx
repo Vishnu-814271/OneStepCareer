@@ -5,6 +5,7 @@ import CodeLab from './CodeLab';
 import { generateTutorResponse } from '../services/geminiService';
 import { dataService } from '../services/dataService';
 import { Search, Sparkles, Send, X, MessageSquare, LogOut, Code, Cpu, Terminal, Globe, BookOpen, Layers, ChevronRight, Play, Trophy } from 'lucide-react';
+import CommunityChat from './CommunityChat';
 
 interface StudentDashboardProps {
   user: User;
@@ -230,6 +231,13 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
             <span className="hidden md:block font-medium">Academy</span>
           </div>
           <div 
+            onClick={() => setActiveView('community')}
+            className={`p-3 rounded-lg flex items-center gap-3 cursor-pointer transition-all duration-300 ${activeView === 'community' ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 shadow-[0_0_15px_rgba(6,182,212,0.1)]' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}
+          >
+            <MessageSquare size={20} />
+            <span className="hidden md:block font-medium">Community</span>
+          </div>
+          <div 
             onClick={() => { setActiveView('courses'); setActiveCourse(null); }}
             className={`p-3 rounded-lg flex items-center gap-3 cursor-pointer transition-all duration-300 ${activeView === 'courses' ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 shadow-[0_0_15px_rgba(6,182,212,0.1)]' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}
           >
@@ -275,6 +283,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
 
         <main className="p-6 overflow-y-auto flex-1">
           {activeView === 'academy' && renderAcademy()}
+          {activeView === 'community' && <CommunityChat currentUser={user} />}
           {activeView === 'labs' && <CodeLab currentUser={user} />}
           {activeView === 'courses' && (
              <div className="text-center py-20">
@@ -287,74 +296,76 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
       </div>
 
       {/* Floating Chat Button */}
-      <div className="fixed bottom-6 right-6 z-50">
-        {!isChatOpen && (
-          <button 
-            onClick={() => setIsChatOpen(true)}
-            className="w-14 h-14 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 rounded-full shadow-[0_0_20px_rgba(124,58,237,0.4)] flex items-center justify-center transition-all hover:scale-110 active:scale-95 animate-float"
-          >
-            <MessageSquare className="text-white" fill="currentColor" />
-          </button>
-        )}
+      {activeView !== 'community' && (
+        <div className="fixed bottom-6 right-6 z-50">
+          {!isChatOpen && (
+            <button 
+              onClick={() => setIsChatOpen(true)}
+              className="w-14 h-14 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 rounded-full shadow-[0_0_20px_rgba(124,58,237,0.4)] flex items-center justify-center transition-all hover:scale-110 active:scale-95 animate-float"
+            >
+              <MessageSquare className="text-white" fill="currentColor" />
+            </button>
+          )}
 
-        {isChatOpen && (
-          <div className="w-80 md:w-96 h-[500px] bg-[#0f172a] border border-slate-700 rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-slide-up origin-bottom-right ring-1 ring-slate-700">
-            <div className="p-4 bg-gradient-to-r from-violet-900 to-indigo-900 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Sparkles size={18} className="text-yellow-300" />
-                <h3 className="font-bold text-white">AI Assistant</h3>
-              </div>
-              <button onClick={() => setIsChatOpen(false)} className="text-violet-200 hover:text-white transition-colors">
-                <X size={18} />
-              </button>
-            </div>
-            
-            <div className="flex-1 p-4 overflow-y-auto bg-[#050b14] scrollbar-hide space-y-4">
-              {messages.map((msg, idx) => (
-                <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[85%] p-3 rounded-2xl text-sm leading-relaxed ${
-                    msg.role === 'user' 
-                      ? 'bg-violet-600 text-white rounded-br-none shadow-md' 
-                      : 'bg-slate-800 text-slate-200 rounded-bl-none border border-slate-700 shadow-sm'
-                  }`}>
-                    {msg.text}
-                  </div>
+          {isChatOpen && (
+            <div className="w-80 md:w-96 h-[500px] bg-[#0f172a] border border-slate-700 rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-slide-up origin-bottom-right ring-1 ring-slate-700">
+              <div className="p-4 bg-gradient-to-r from-violet-900 to-indigo-900 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Sparkles size={18} className="text-yellow-300" />
+                  <h3 className="font-bold text-white">AI Assistant</h3>
                 </div>
-              ))}
-              {isLoading && (
-                 <div className="flex justify-start">
-                   <div className="bg-slate-800 p-3 rounded-2xl rounded-bl-none border border-slate-700 flex gap-1">
-                     <span className="w-2 h-2 bg-slate-500 rounded-full animate-bounce"></span>
-                     <span className="w-2 h-2 bg-slate-500 rounded-full animate-bounce delay-75"></span>
-                     <span className="w-2 h-2 bg-slate-500 rounded-full animate-bounce delay-150"></span>
+                <button onClick={() => setIsChatOpen(false)} className="text-violet-200 hover:text-white transition-colors">
+                  <X size={18} />
+                </button>
+              </div>
+              
+              <div className="flex-1 p-4 overflow-y-auto bg-[#050b14] scrollbar-hide space-y-4">
+                {messages.map((msg, idx) => (
+                  <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-[85%] p-3 rounded-2xl text-sm leading-relaxed ${
+                      msg.role === 'user' 
+                        ? 'bg-violet-600 text-white rounded-br-none shadow-md' 
+                        : 'bg-slate-800 text-slate-200 rounded-bl-none border border-slate-700 shadow-sm'
+                    }`}>
+                      {msg.text}
+                    </div>
+                  </div>
+                ))}
+                {isLoading && (
+                   <div className="flex justify-start">
+                     <div className="bg-slate-800 p-3 rounded-2xl rounded-bl-none border border-slate-700 flex gap-1">
+                       <span className="w-2 h-2 bg-slate-500 rounded-full animate-bounce"></span>
+                       <span className="w-2 h-2 bg-slate-500 rounded-full animate-bounce delay-75"></span>
+                       <span className="w-2 h-2 bg-slate-500 rounded-full animate-bounce delay-150"></span>
+                     </div>
                    </div>
-                 </div>
-              )}
-              <div ref={messagesEndRef} />
-            </div>
+                )}
+                <div ref={messagesEndRef} />
+              </div>
 
-            <div className="p-4 bg-[#0f172a] border-t border-slate-800">
-               <div className="flex gap-2">
-                 <input 
-                   type="text"
-                   value={inputMessage}
-                   onChange={(e) => setInputMessage(e.target.value)}
-                   onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                   placeholder="Ask about code..."
-                   className="flex-1 bg-[#1e293b] border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-violet-500 transition-colors"
-                 />
-                 <button 
-                   onClick={handleSendMessage}
-                   disabled={isLoading || !inputMessage.trim()}
-                   className="p-2 bg-violet-600 rounded-lg text-white hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                 >
-                   <Send size={18} />
-                 </button>
-               </div>
+              <div className="p-4 bg-[#0f172a] border-t border-slate-800">
+                 <div className="flex gap-2">
+                   <input 
+                     type="text"
+                     value={inputMessage}
+                     onChange={(e) => setInputMessage(e.target.value)}
+                     onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                     placeholder="Ask about code..."
+                     className="flex-1 bg-[#1e293b] border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-violet-500 transition-colors"
+                   />
+                   <button 
+                     onClick={handleSendMessage}
+                     disabled={isLoading || !inputMessage.trim()}
+                     className="p-2 bg-violet-600 rounded-lg text-white hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                   >
+                     <Send size={18} />
+                   </button>
+                 </div>
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

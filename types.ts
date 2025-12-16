@@ -6,6 +6,7 @@ export interface User {
   name: string;
   role: Role;
   email: string;
+  password?: string; // Storing password for mock demo purposes
   isPaid?: boolean;
   plan?: 'STUDENT' | 'PROFESSIONAL';
   paymentStatus?: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED' | 'NONE';
@@ -29,6 +30,15 @@ export interface ChatMessage {
   role: 'user' | 'model';
   text: string;
   timestamp: Date;
+}
+
+export interface CommunityMessage {
+  id: string;
+  userId: string;
+  userName: string;
+  userRole: Role;
+  text: string;
+  timestamp: string; // ISO string for storage
 }
 
 export interface TestCase {

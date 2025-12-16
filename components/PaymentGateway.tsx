@@ -1,34 +1,82 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User } from '../types';
-import { CreditCard, CheckCircle, ShieldCheck, Zap, Smartphone, QrCode, Copy, Clock, AlertTriangle } from 'lucide-react';
+import { CreditCard, CheckCircle, ShieldCheck, Zap, Smartphone, QrCode, Copy, Clock, RefreshCw, XCircle } from 'lucide-react';
 import { dataService } from '../services/dataService';
 
 interface PaymentGatewayProps {
   user: User;
   onPaymentComplete: (updatedUser: User) => void;
-  onLogout?: () => void; // Optional prop to allow logout from waiting screen
+  onLogout?: () => void; 
 }
 
 const PaymentGateway: React.FC<PaymentGatewayProps> = ({ user, onPaymentComplete, onLogout }) => {
   const [selectedPlan, setSelectedPlan] = useState<'STUDENT' | 'PROFESSIONAL'>('STUDENT');
   const [step, setStep] = useState<'PLAN_SELECTION' | 'UPI_PAYMENT'>('PLAN_SELECTION');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isChecking, setIsChecking] = useState(false);
 
   const UPI_ID = "8142712925@hdfcbank";
   const AMOUNT = selectedPlan === 'STUDENT' ? 249 : 349;
 
-  // Handle case where user is already pending
-  if (user.paymentStatus === 'PENDING_APPROVAL') {
+  // Auto-Poll for Status Changes
+  useEffect(() => {
+    if (user.paymentStatus === 'PENDING_APPROVAL') {
+       const interval = setInterval(() => {
+          checkStatusSilent();
+       }, 1000); // Check every 1 second for faster response
+       return () => clearInterval(interval);
+    }
+  }, [user.paymentStatus, user.id]);
+
+  const checkStatusSilent = () => {
+    const freshUser = dataService.getUserById(user.id);
+    if (freshUser) {
+       if (freshUser.paymentStatus === 'APPROVED' && freshUser.isPaid) {
+          onPaymentComplete(freshUser);
+       } else if (freshUser.paymentStatus === 'REJECTED') {
+          onPaymentComplete(freshUser);
+       }
+    }
+  };
+
+  const handleCheckStatus = () => {
+    setIsChecking(true);
+    setTimeout(() => {
+       const freshUser = dataService.getUserById(user.id);
+       setIsChecking(false);
+       
+       if (freshUser) {
+          if (freshUser.paymentStatus === 'APPROVED' && freshUser.isPaid) {
+             onPaymentComplete(freshUser);
+          } else if (freshUser.paymentStatus === 'REJECTED') {
+             onPaymentComplete(freshUser);
+          } else {
+             // Optional: visual feedback that we checked but still pending
+             console.log("Still pending...");
+          }
+       }
+    }, 500);
+  };
+
+  // Handle case where user is already pending or rejected
+  if (user.paymentStatus === 'PENDING_APPROVAL' || user.paymentStatus === 'REJECTED') {
+    const isRejected = user.paymentStatus === 'REJECTED';
+    
     return (
       <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[#050b14]/90 backdrop-blur-md p-4 animate-fade-in">
         <div className="bg-[#0f172a] border border-slate-700 w-full max-w-md rounded-2xl p-8 text-center shadow-2xl">
-          <div className="w-20 h-20 bg-yellow-500/10 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
-             <Clock size={40} className="text-yellow-500" />
+          <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 ${isRejected ? 'bg-red-500/10' : 'bg-yellow-500/10 animate-pulse'}`}>
+             {isRejected ? <XCircle size={40} className="text-red-500" /> : <Clock size={40} className="text-yellow-500" />}
           </div>
-          <h2 className="text-2xl font-bold text-white mb-2">Verification Pending</h2>
+          
+          <h2 className="text-2xl font-bold text-white mb-2">{isRejected ? 'Application Rejected' : 'Verification Pending'}</h2>
+          
           <p className="text-slate-400 mb-6">
-            Your payment details have been submitted. An administrator will verify the transaction with the bank and approve your account shortly.
+            {isRejected 
+               ? "Your payment request was rejected by the administrator. Please contact support or try again."
+               : "Your payment details have been submitted. An administrator will verify the transaction and approve your account shortly."}
           </p>
+
           <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-700 mb-6 text-sm text-left">
              <div className="flex justify-between mb-2">
                <span className="text-slate-500">Account:</span>
@@ -36,19 +84,48 @@ const PaymentGateway: React.FC<PaymentGatewayProps> = ({ user, onPaymentComplete
              </div>
              <div className="flex justify-between">
                <span className="text-slate-500">Status:</span>
-               <span className="text-yellow-400 font-bold flex items-center gap-1"><Clock size={12}/> Awaiting Approval</span>
+               <span className={`${isRejected ? 'text-red-400' : 'text-yellow-400'} font-bold flex items-center gap-1`}>
+                 {isRejected ? <><XCircle size={12}/> Rejected</> : <><Clock size={12}/> Awaiting Approval</>}
+               </span>
              </div>
           </div>
-          <p className="text-xs text-slate-500 mb-6">Please check back later.</p>
-          <button 
-             onClick={() => window.location.reload()} 
-             className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-bold transition-colors"
-          >
-             Refresh Status
-          </button>
-          {onLogout && (
-             <button onClick={onLogout} className="mt-4 text-xs text-slate-500 hover:text-red-400">Sign Out</button>
+          
+          {!isRejected && (
+            <div className="flex items-center justify-center gap-2 text-xs text-cyan-400 mb-6">
+               <div className="flex gap-1">
+                 <span className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-bounce"></span>
+                 <span className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-bounce delay-100"></span>
+                 <span className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-bounce delay-200"></span>
+               </div>
+               <span className="animate-pulse">Live: Waiting for admin approval...</span>
+            </div>
           )}
+
+          <div className="flex flex-col gap-3">
+            {isRejected ? (
+               <button 
+                  onClick={() => {
+                     if(onLogout) onLogout();
+                  }}
+                  className="w-full py-3 bg-red-600 hover:bg-red-500 text-white rounded-lg font-bold transition-colors"
+               >
+                  Close & Sign Out
+               </button>
+            ) : (
+               <button 
+                  onClick={handleCheckStatus} 
+                  disabled={isChecking}
+                  className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-bold transition-colors flex items-center justify-center gap-2"
+               >
+                  {isChecking ? <RefreshCw size={16} className="animate-spin" /> : <RefreshCw size={16} />}
+                  Check Now
+               </button>
+            )}
+            
+            {onLogout && !isRejected && (
+               <button onClick={onLogout} className="text-xs text-slate-500 hover:text-red-400">Sign Out</button>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -60,12 +137,9 @@ const PaymentGateway: React.FC<PaymentGatewayProps> = ({ user, onPaymentComplete
     setTimeout(() => {
       const updatedUser = dataService.submitPaymentRequest(user.id, selectedPlan);
       if (updatedUser) {
-        // We do not call onPaymentComplete immediately because isPaid is still false
-        // Instead we force a re-render to show the PENDING_APPROVAL state
-        // By calling onPaymentComplete with the updated pending user, the parent (BookAuth) handles it.
         onPaymentComplete(updatedUser);
       }
-    }, 2000);
+    }, 1500);
   };
 
   const copyToClipboard = () => {

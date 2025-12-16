@@ -1,16 +1,55 @@
-import { User, Problem, Difficulty } from '../types';
+import { User, Problem, Difficulty, CommunityMessage } from '../types';
 
-// Initial Mock Data
-let users: User[] = [
-  { id: '1', name: 'Admin User', email: 'admin@technexus.com', role: 'ADMIN', isPaid: true, paymentStatus: 'APPROVED', joinedDate: new Date('2023-01-01') },
-  { id: '2', name: 'Student User', email: 'student@technexus.com', role: 'STUDENT', isPaid: true, plan: 'STUDENT', paymentStatus: 'APPROVED', joinedDate: new Date('2023-05-15'), score: 0, completedProblems: [] },
-  { id: '3', name: 'New Joiner', email: 'new@technexus.com', role: 'STUDENT', isPaid: false, paymentStatus: 'NONE', joinedDate: new Date(), score: 0, completedProblems: [] }
+const STORAGE_KEY = 'technexus_db_v3'; // Incremented version to force clear old bad data if any
+
+// --- INITIAL SEED DATA ---
+const initialUsers: User[] = [
+  { 
+    id: '1', 
+    name: 'Admin User', 
+    email: 'admin@gmail.com', 
+    password: 'Admin@123', 
+    role: 'ADMIN', 
+    isPaid: true, 
+    paymentStatus: 'APPROVED', 
+    joinedDate: new Date('2023-01-01') 
+  },
+  { 
+    id: '2', 
+    name: 'Student User', 
+    email: 'student@technexus.com', 
+    password: 'Password123', 
+    role: 'STUDENT', 
+    isPaid: true, 
+    plan: 'STUDENT', 
+    paymentStatus: 'APPROVED', 
+    joinedDate: new Date('2023-05-15'), 
+    score: 0, 
+    completedProblems: [] 
+  }
 ];
 
-// Initial Languages
-let languages: string[] = ['Python', 'Java', 'C', 'C++'];
+const initialLanguages: string[] = ['Python', 'Java', 'C', 'C++'];
 
-// Helper to generate problems
+const initialCommunityMessages: CommunityMessage[] = [
+  {
+    id: 'msg-1',
+    userId: '2',
+    userName: 'Student User',
+    userRole: 'STUDENT',
+    text: 'Hello, I am having trouble accessing the Advanced Python module.',
+    timestamp: new Date('2023-06-01T10:00:00').toISOString()
+  },
+  {
+    id: 'msg-2',
+    userId: '1',
+    userName: 'Admin User',
+    userRole: 'ADMIN',
+    text: 'Hi there! Please make sure you have completed the assessments for the Basic module first.',
+    timestamp: new Date('2023-06-01T10:05:00').toISOString()
+  }
+];
+
 const generateProblems = (): Problem[] => {
   const generated: Problem[] = [];
   
@@ -20,15 +59,11 @@ const generateProblems = (): Problem[] => {
     { diff: 'L2', points: 10, count: 10 }
   ];
 
-  // Specific Titles for Python to make it look real
   const pythonTitles = [
-    // L0
     "Hello World", "Print Variable", "Simple Addition", "String Concat", "Input Output", 
     "Area of Square", "Convert Int to String", "List Creation", "Boolean Logic", "Simple Loop",
-    // L1
     "Check Even/Odd", "Find Maximum", "Factorial Loop", "String Reversal", "Count Vowels",
     "List Sum", "Temperature Convert", "Simple Calculator", "Range Check", "FizzBuzz",
-    // L2
     "Palindrome Check", "Prime Number", "Fibonacci Sequence", "List Sorting", "Dictionary Basics",
     "Anagram Check", "Remove Duplicates", "Matrix Addition", "Binary Search Basic", "Pattern Printing"
   ];
@@ -36,15 +71,12 @@ const generateProblems = (): Problem[] => {
   let titleIndex = 0;
 
   ['Python', 'Java', 'C', 'C++'].forEach(lang => {
-    // Reset titles for each lang or just cycle
     titleIndex = 0; 
-    
     levels.forEach(level => {
       for (let i = 1; i <= level.count; i++) {
         const title = lang === 'Python' ? (pythonTitles[titleIndex] || `${lang} Problem ${i}`) : `${lang} ${level.diff} Problem ${i}`;
         if(lang === 'Python') titleIndex++;
 
-        // Basic Starter Code based on Lang
         let starter = '';
         if (lang === 'Python') starter = '# Write your code here\n';
         if (lang === 'Java') starter = 'public class Main {\n    public static void main(String[] args) {\n        // Code here\n    }\n}';
@@ -72,96 +104,226 @@ const generateProblems = (): Problem[] => {
   return generated;
 };
 
-let problems: Problem[] = generateProblems();
+// --- STATE MANAGEMENT ---
+interface AppData {
+  users: User[];
+  languages: string[];
+  problems: Problem[];
+  communityMessages: CommunityMessage[];
+}
+
+const defaultState: AppData = {
+  users: [...initialUsers],
+  languages: [...initialLanguages],
+  problems: generateProblems(),
+  communityMessages: [...initialCommunityMessages]
+};
+
+// Helper to get fresh state from localStorage every time
+const getState = (): AppData => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      // Merge with default state to ensure structure integrity
+      return { 
+        ...defaultState, 
+        ...parsed,
+        users: parsed.users || defaultState.users,
+        problems: parsed.problems || defaultState.problems
+      };
+    }
+  } catch (e) {
+    console.error("Failed to load data", e);
+  }
+  // Initialize if empty
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultState));
+  return defaultState;
+};
+
+const saveState = (state: AppData) => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch (e) {
+    console.error("Failed to save data", e);
+  }
+};
 
 export const dataService = {
   // USER OPERATIONS
-  getUsers: (): User[] => [...users],
+  getUsers: (): User[] => {
+    return getState().users;
+  },
+
+  getUserById: (id: string): User | undefined => {
+    const state = getState();
+    return state.users.find(u => u.id === id);
+  },
   
   registerUser: (user: User): boolean => {
-    if (users.some(u => u.email.toLowerCase() === user.email.toLowerCase())) {
+    const state = getState();
+    if (state.users.some(u => u.email.toLowerCase() === user.email.toLowerCase())) {
       return false; // User exists
     }
-    users.push({ ...user, joinedDate: new Date(), isPaid: false, paymentStatus: 'NONE', score: 0, completedProblems: [] }); 
+    state.users.push({ 
+      ...user, 
+      joinedDate: new Date(), 
+      isPaid: false, 
+      paymentStatus: 'NONE', 
+      score: 0, 
+      completedProblems: [] 
+    });
+    saveState(state);
     return true;
   },
 
+  loginUser: (email: string, password: string): { success: boolean; user?: User; message: string } => {
+    const state = getState();
+    const user = state.users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    
+    if (!user) {
+      return { success: false, message: "User not found. Please Sign Up." };
+    }
+
+    if (user.password !== password) {
+      return { success: false, message: "Incorrect password." };
+    }
+
+    return { success: true, user, message: "Login successful." };
+  },
+
+  resetPassword: (email: string, newPassword: string): boolean => {
+    const state = getState();
+    const userIndex = state.users.findIndex(u => u.email.toLowerCase() === email.toLowerCase());
+    if (userIndex !== -1) {
+      state.users[userIndex].password = newPassword;
+      saveState(state);
+      return true;
+    }
+    return false;
+  },
+
   updateUserScore: (userId: string, problemId: string, points: number) => {
-    const user = users.find(u => u.id === userId);
+    const state = getState();
+    const user = state.users.find(u => u.id === userId);
     if (user) {
       if (!user.completedProblems) user.completedProblems = [];
       if (!user.score) user.score = 0;
 
-      // Only add score if not already completed
       if (!user.completedProblems.includes(problemId)) {
         user.completedProblems.push(problemId);
         user.score += points;
+        saveState(state);
       }
     }
   },
 
   submitPaymentRequest: (userId: string, plan: 'STUDENT' | 'PROFESSIONAL') => {
-    const user = users.find(u => u.id === userId);
-    if (user) {
-      user.paymentStatus = 'PENDING_APPROVAL';
-      user.plan = plan;
-      user.isPaid = false; 
+    const state = getState();
+    const userIndex = state.users.findIndex(u => u.id === userId);
+    if (userIndex !== -1) {
+      state.users[userIndex].paymentStatus = 'PENDING_APPROVAL';
+      state.users[userIndex].plan = plan;
+      state.users[userIndex].isPaid = false; 
+      saveState(state);
+      return state.users[userIndex];
     }
-    return user;
+    return undefined;
   },
 
   approvePayment: (userId: string) => {
-    const user = users.find(u => u.id === userId);
-    if (user) {
-      user.paymentStatus = 'APPROVED';
-      user.isPaid = true;
+    const state = getState();
+    const userIndex = state.users.findIndex(u => u.id === userId);
+    if (userIndex !== -1) {
+      state.users[userIndex].paymentStatus = 'APPROVED';
+      state.users[userIndex].isPaid = true;
+      saveState(state);
+      return state.users[userIndex];
     }
-    return user;
+    return undefined;
   },
 
   rejectPayment: (userId: string) => {
-    const user = users.find(u => u.id === userId);
-    if (user) {
-      user.paymentStatus = 'REJECTED';
-      user.isPaid = false;
+    const state = getState();
+    const userIndex = state.users.findIndex(u => u.id === userId);
+    if (userIndex !== -1) {
+      state.users[userIndex].paymentStatus = 'REJECTED';
+      state.users[userIndex].isPaid = false;
+      saveState(state);
+      return state.users[userIndex];
     }
-    return user;
+    return undefined;
   },
 
   // LANGUAGE OPERATIONS
-  getLanguages: (): string[] => [...languages],
+  getLanguages: (): string[] => {
+    return getState().languages;
+  },
   
   addLanguage: (lang: string): boolean => {
-    if (languages.includes(lang)) return false;
-    languages.push(lang);
+    const state = getState();
+    if (state.languages.includes(lang)) return false;
+    state.languages.push(lang);
+    saveState(state);
     return true;
   },
 
   // PROBLEM OPERATIONS
-  getProblems: (): Problem[] => [...problems],
+  getProblems: (): Problem[] => {
+    return getState().problems;
+  },
   
   getModulesByLanguage: (language: string): string[] => {
-    const langProblems = problems.filter(p => p.language === language);
+    const state = getState();
+    const langProblems = state.problems.filter(p => p.language === language);
     const modules = new Set(langProblems.map(p => p.module || 'General'));
     return Array.from(modules);
   },
 
   getProblemsByModule: (language: string, module: string): Problem[] => {
-    return problems.filter(p => p.language === language && (p.module || 'General') === module);
+    const state = getState();
+    return state.problems.filter(p => p.language === language && (p.module || 'General') === module);
   },
   
   addProblem: (problem: Problem) => {
-    problems.push(problem);
+    const state = getState();
+    state.problems.push(problem);
+    saveState(state);
   },
   
   updateProblem: (updatedProblem: Problem) => {
-    const index = problems.findIndex(p => p.id === updatedProblem.id);
+    const state = getState();
+    const index = state.problems.findIndex(p => p.id === updatedProblem.id);
     if (index !== -1) {
-      problems[index] = updatedProblem;
+      state.problems[index] = updatedProblem;
+      saveState(state);
     }
   },
   
   deleteProblem: (id: string) => {
-    problems = problems.filter(p => p.id !== id);
+    const state = getState();
+    state.problems = state.problems.filter(p => p.id !== id);
+    saveState(state);
+  },
+
+  // COMMUNITY MESSAGES
+  getCommunityMessages: (): CommunityMessage[] => {
+    const state = getState();
+    return [...state.communityMessages].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+  },
+
+  postCommunityMessage: (userId: string, userName: string, userRole: 'ADMIN' | 'STUDENT', text: string) => {
+    const state = getState();
+    const newMessage: CommunityMessage = {
+      id: Math.random().toString(36).substr(2, 9),
+      userId,
+      userName,
+      userRole,
+      text,
+      timestamp: new Date().toISOString()
+    };
+    state.communityMessages.push(newMessage);
+    saveState(state);
+    return newMessage;
   }
 };

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { User, Problem, Difficulty, TestCase } from '../types';
-import { LogOut, Plus, Users, BarChart3, Settings, BookOpen, Trash2, Edit, Code, Save, X, Folder, ChevronRight, ArrowLeft, LayoutGrid, CheckCircle, AlertCircle } from 'lucide-react';
+import { LogOut, Plus, Users, BarChart3, Settings, BookOpen, Trash2, Edit, Code, Save, X, Folder, ChevronRight, ArrowLeft, LayoutGrid, CheckCircle, AlertCircle, XCircle, MessageSquare } from 'lucide-react';
 import { dataService } from '../services/dataService';
+import CommunityChat from './CommunityChat';
 
 interface AdminDashboardProps {
   user: User;
@@ -9,7 +10,7 @@ interface AdminDashboardProps {
 }
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'courses' | 'labs' | 'students'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'courses' | 'labs' | 'students' | 'community'>('overview');
   
   // Lab Management State
   const [labView, setLabView] = useState<'folders' | 'questions'>('folders');
@@ -36,9 +37,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
   // Initial Load
   useEffect(() => {
     refreshData();
-  }, [activeTab]); // Refresh when tab changes
+  }, [activeTab]); 
 
   const refreshData = () => {
+    // Force reload from local storage
     setLanguages(dataService.getLanguages());
     setProblems(dataService.getProblems());
     setUsersList(dataService.getUsers().filter(u => u.role === 'STUDENT'));
@@ -87,19 +89,24 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
   };
 
   const handleEditProblem = (prob: Problem) => {
-    setCurrentProblem(JSON.parse(JSON.stringify(prob))); // Deep copy to avoid mutating state directly
+    setCurrentProblem(JSON.parse(JSON.stringify(prob))); 
     setIsEditingProblem(true);
   };
 
   const handleApprovePayment = (studentId: string) => {
-    if (window.confirm("Confirm payment receipt? This will grant the student access.")) {
-      dataService.approvePayment(studentId);
-      refreshData();
+    // Explicitly ask for confirmation
+    if (window.confirm("Grant portal access to this student?")) {
+      const approvedUser = dataService.approvePayment(studentId);
+      refreshData(); // Immediate UI update
+      if (approvedUser) {
+        // Explicit success feedback as requested
+        alert(`Successfully Approved! ${approvedUser.name} now has access.`);
+      }
     }
   };
 
   const handleRejectPayment = (studentId: string) => {
-    if (window.confirm("Reject this payment request?")) {
+    if (window.confirm("Reject access for this student?")) {
       dataService.rejectPayment(studentId);
       refreshData();
     }
@@ -126,10 +133,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
     setCurrentProblem({ ...currentProblem, testCases: updatedCases });
   };
 
-  // Get available modules for the selected language
   const availableModules = selectedLanguage ? dataService.getModulesByLanguage(selectedLanguage) : [];
 
-  // Mock Stats
   const stats = [
     { title: 'Total Students', value: usersList.length.toString(), icon: Users, color: 'text-cyan-400', bg: 'bg-cyan-400/10' },
     { title: 'Total Problems', value: problems.length.toString(), icon: Code, color: 'text-violet-400', bg: 'bg-violet-400/10' },
@@ -138,7 +143,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
 
   return (
     <div className="min-h-screen bg-[#050b14] text-slate-200 font-sans">
-      {/* Top Navigation */}
       <nav className="h-16 border-b border-slate-800 bg-[#0a101f]/80 backdrop-blur-xl flex items-center justify-between px-8 sticky top-0 z-20">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-gradient-to-br from-cyan-500 to-blue-600 rounded flex items-center justify-center font-bold text-white shadow-lg shadow-cyan-500/20">A</div>
@@ -153,7 +157,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
       </nav>
 
       <div className="flex h-[calc(100vh-64px)]">
-        {/* Sidebar */}
         <aside className="w-64 border-r border-slate-800 bg-[#0a101f]/50 hidden md:block p-4 space-y-2">
           <button 
             onClick={() => setActiveTab('overview')}
@@ -170,6 +173,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
             Students List
           </button>
           <button 
+            onClick={() => setActiveTab('community')}
+            className={`w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 transition-all ${activeTab === 'community' ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 shadow-[0_0_15px_rgba(6,182,212,0.1)]' : 'text-slate-400 hover:bg-slate-800'}`}
+          >
+            <MessageSquare size={18} />
+            Student Community
+          </button>
+          <button 
             onClick={() => setActiveTab('labs')}
             className={`w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 transition-all ${activeTab === 'labs' ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 shadow-[0_0_15px_rgba(6,182,212,0.1)]' : 'text-slate-400 hover:bg-slate-800'}`}
           >
@@ -178,13 +188,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
           </button>
         </aside>
 
-        {/* Main Content Area */}
         <main className="flex-1 p-8 overflow-y-auto bg-[url('https://grainy-gradients.vercel.app/noise.svg')] bg-opacity-20">
           {activeTab === 'overview' && (
             <div className="animate-fade-in space-y-8">
                <h1 className="text-3xl font-bold text-white">Dashboard Overview</h1>
-               
-               {/* Stats Grid */}
                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                  {stats.map((stat, idx) => (
                    <div key={idx} className="glass-panel p-6 rounded-xl flex items-center gap-4 hover:border-cyan-500/30 transition-all duration-300">
@@ -201,9 +208,19 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
             </div>
           )}
 
+          {activeTab === 'community' && (
+             <div className="animate-fade-in h-[calc(100vh-140px)]">
+                <CommunityChat currentUser={user} />
+             </div>
+          )}
+
           {activeTab === 'students' && (
              <div className="animate-fade-in">
-               <h1 className="text-3xl font-bold text-white mb-6">Enrolled Students</h1>
+               <div className="flex justify-between items-center mb-6">
+                  <h1 className="text-3xl font-bold text-white">Enrolled Students</h1>
+                  <button onClick={refreshData} className="px-4 py-2 bg-slate-800 text-slate-300 rounded hover:bg-slate-700 text-xs font-bold">Refresh List</button>
+               </div>
+               
                <div className="glass-panel rounded-xl overflow-hidden">
                  <table className="w-full text-left border-collapse">
                    <thead className="bg-[#0f172a] text-slate-400 text-xs uppercase font-bold border-b border-slate-700">
@@ -229,6 +246,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
                              <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 text-xs font-bold rounded-full border border-yellow-500/30 flex w-fit items-center gap-1 animate-pulse">
                                <AlertCircle size={10} /> Pending
                              </span>
+                           ) : student.paymentStatus === 'REJECTED' ? (
+                             <span className="px-2 py-1 bg-red-500/20 text-red-400 text-xs font-bold rounded-full border border-red-500/30 flex w-fit items-center gap-1">
+                               <XCircle size={10} /> Rejected
+                             </span>
                            ) : (
                              <span className="px-2 py-1 bg-slate-700 text-slate-400 text-xs font-bold rounded-full border border-slate-600">
                                Not Paid
@@ -237,24 +258,25 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
                          </td>
                          <td className="p-4 text-slate-300 text-sm">{student.plan || '-'}</td>
                          <td className="p-4 text-right pr-6">
-                            {student.paymentStatus === 'PENDING_APPROVAL' && (
+                            {student.paymentStatus === 'PENDING_APPROVAL' ? (
                               <div className="flex justify-end gap-2">
                                 <button 
                                   onClick={() => handleApprovePayment(student.id)}
-                                  className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded transition-colors"
+                                  className="flex items-center gap-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded transition-colors shadow-lg shadow-emerald-900/20"
                                 >
-                                  Approve
+                                  <CheckCircle size={12} /> Approve
                                 </button>
                                 <button 
                                   onClick={() => handleRejectPayment(student.id)}
-                                  className="px-3 py-1 bg-red-900/50 hover:bg-red-900 text-red-300 text-xs font-bold rounded transition-colors border border-red-800"
+                                  className="flex items-center gap-1 px-3 py-1.5 bg-red-600/20 hover:bg-red-600 hover:text-white text-red-400 text-xs font-bold rounded transition-colors border border-red-900/30"
                                 >
-                                  Reject
+                                  <XCircle size={12} /> Reject
                                 </button>
                               </div>
-                            )}
-                            {student.paymentStatus === 'APPROVED' && (
-                               <span className="text-xs text-slate-500 italic">Approved</span>
+                            ) : (
+                               <div className="flex justify-end">
+                                 <span className="text-slate-600 text-xs italic">No actions available</span>
+                               </div>
                             )}
                          </td>
                        </tr>
@@ -273,7 +295,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
           {activeTab === 'labs' && (
             <div className="animate-fade-in space-y-6">
               {labView === 'folders' ? (
-                /* FOLDER VIEW: LANGUAGES */
                 <>
                   <div className="flex items-center justify-between mb-8">
                     <div>
@@ -289,7 +310,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
                     </button>
                   </div>
 
-                  {/* Add Language Modal */}
                   {isAddingLanguage && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
                        <form onSubmit={handleAddLanguage} className="bg-[#0f172a] border border-slate-700 w-full max-w-md rounded-xl p-6 shadow-2xl">
@@ -336,7 +356,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
                   </div>
                 </>
               ) : (
-                /* QUESTIONS VIEW */
                 <>
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-4">
@@ -364,7 +383,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
                     </button>
                   </div>
 
-                  {/* Problem Editor Modal */}
                   {isEditingProblem && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
                        <div className="bg-[#0f172a] border border-slate-700 w-full max-w-3xl rounded-xl p-6 shadow-2xl overflow-y-auto max-h-[90vh]">
@@ -409,7 +427,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
                                    onChange={e => setCurrentProblem({...currentProblem, difficulty: e.target.value as Difficulty})}
                                    className="w-full bg-[#1e293b] border border-slate-600 rounded p-2 text-white focus:border-cyan-500 outline-none"
                                  >
-                                   {['L0', 'L1', 'L2', 'L3'].map(l => <option key={l} value={l}>{l}</option>)}
+                                   {['L0', 'L1', 'L2'].map(l => <option key={l} value={l}>{l}</option>)}
                                  </select>
                              </div>
                             
@@ -445,7 +463,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
                               />
                             </div>
 
-                            {/* Test Cases Section */}
                             <div className="border-t border-slate-700 pt-4">
                               <div className="flex justify-between items-center mb-3">
                                 <label className="block text-xs font-bold text-slate-400 uppercase">Test Cases</label>
@@ -501,7 +518,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
                     </div>
                   )}
 
-                  {/* Questions List */}
                   <div className="glass-panel rounded-xl overflow-hidden">
                     <table className="w-full text-left">
                       <thead className="bg-[#0f172a] text-slate-400 text-xs uppercase font-bold border-b border-slate-700">

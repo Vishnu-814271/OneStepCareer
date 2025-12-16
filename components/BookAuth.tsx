@@ -4,7 +4,7 @@ import { dataService } from '../services/dataService';
 import PaymentGateway from './PaymentGateway';
 import { 
   Terminal, Shield, ChevronRight, X, 
-  Users, Mail, KeyRound, CheckCircle, Facebook, Globe, Lock
+  Users, Mail, KeyRound, CheckCircle, Facebook, Globe, Lock, ArrowLeft
 } from 'lucide-react';
 
 interface BookAuthProps {
@@ -12,7 +12,7 @@ interface BookAuthProps {
 }
 
 const BookAuth: React.FC<BookAuthProps> = ({ onLogin }) => {
-  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
+  const [authMode, setAuthMode] = useState<'login' | 'signup' | 'forgot'>('login');
   
   // Auth Form State
   const [role, setRole] = useState<Role>('STUDENT');
@@ -23,11 +23,13 @@ const BookAuth: React.FC<BookAuthProps> = ({ onLogin }) => {
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [pendingUser, setPendingUser] = useState<User | null>(null);
 
-  // Verification State
+  // Verification & Reset State
   const [isVerifying, setIsVerifying] = useState(false);
+  const [isResetting, setIsResetting] = useState(false); 
   const [verificationCode, setVerificationCode] = useState('');
   const [userEnteredCode, setUserEnteredCode] = useState('');
   const [tempSignupData, setTempSignupData] = useState<User | null>(null);
+  const [newPassword, setNewPassword] = useState('');
 
   const validateEmail = (email: string) => {
     return String(email)
@@ -41,25 +43,32 @@ const BookAuth: React.FC<BookAuthProps> = ({ onLogin }) => {
     return regex.test(pwd);
   };
 
+  // --- LOGIN ---
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setSuccessMsg(null);
     
-    const users = dataService.getUsers();
-    const existingUser = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.role === role);
+    const result = dataService.loginUser(email, password);
 
-    if (existingUser) {
-      if (existingUser.role === 'STUDENT' && !existingUser.isPaid) {
-        setPendingUser(existingUser);
+    if (result.success && result.user) {
+      if (result.user.role !== role) {
+        setError(`This email is registered as ${result.user.role}. Please switch roles.`);
+        return;
+      }
+      // CHECK PAYMENT STATUS
+      if (result.user.role === 'STUDENT' && !result.user.isPaid) {
+        // Even if status is PENDING_APPROVAL, we show the payment gateway (which has a "Waiting" screen)
+        setPendingUser(result.user);
       } else {
-        onLogin(existingUser);
+        onLogin(result.user);
       }
     } else {
-      setError("Invalid credentials. Please check your email/role.");
+      setError(result.message);
     }
   };
 
+  // --- SIGNUP ---
   const handleSignupInitiate = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -74,7 +83,7 @@ const BookAuth: React.FC<BookAuthProps> = ({ onLogin }) => {
 
     const users = dataService.getUsers();
     if (users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
-      setError("Email already registered.");
+      setError("Email already registered. Please Login.");
       return;
     }
 
@@ -85,6 +94,7 @@ const BookAuth: React.FC<BookAuthProps> = ({ onLogin }) => {
       id: Math.random().toString(36).substr(2, 9),
       name: name,
       email: email,
+      password: password,
       role: role,
       isPaid: false
     });
@@ -98,13 +108,49 @@ const BookAuth: React.FC<BookAuthProps> = ({ onLogin }) => {
       dataService.registerUser(tempSignupData);
       setIsVerifying(false);
       setAuthMode('login');
-      setSuccessMsg("Account verified! Please login.");
+      setSuccessMsg("Account verified successfully! Please log in.");
       setUserEnteredCode('');
       setTempSignupData(null);
       setPassword(''); 
     } else {
-      setError("Invalid code.");
+      setError("Invalid code. Please match the demo code displayed.");
     }
+  };
+
+  const handleForgotInitiate = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    const users = dataService.getUsers();
+    const existing = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+
+    if (!existing) {
+      setError("No account found with this email. Please Sign Up.");
+      return;
+    }
+
+    const generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
+    setVerificationCode(generatedCode);
+    setIsResetting(true);
+  };
+
+  const handleResetSubmit = (e: React.FormEvent) => {
+     e.preventDefault();
+     if (userEnteredCode === verificationCode) {
+       if (!validatePassword(newPassword)) {
+         setError("New password must be 8+ chars with letters & numbers.");
+         return;
+       }
+       
+       dataService.resetPassword(email, newPassword);
+       setIsResetting(false);
+       setAuthMode('login');
+       setSuccessMsg("Password reset successfully. Please Login.");
+       setUserEnteredCode('');
+       setNewPassword('');
+       setPassword('');
+     } else {
+       setError("Invalid verification code.");
+     }
   };
 
   const handleSocialLogin = (provider: string) => {
@@ -120,6 +166,7 @@ const BookAuth: React.FC<BookAuthProps> = ({ onLogin }) => {
          id: Math.random().toString(36).substr(2, 9),
          name: `${provider} User`,
          email: mockEmail,
+         password: 'SocialLoginPass123',
          role: 'STUDENT' as Role,
          isPaid: false
        };
@@ -132,7 +179,15 @@ const BookAuth: React.FC<BookAuthProps> = ({ onLogin }) => {
     return (
       <PaymentGateway 
         user={pendingUser} 
-        onPaymentComplete={(paidUser) => { setPendingUser(null); onLogin(paidUser); }}
+        onPaymentComplete={(updatedUser) => { 
+          // CRITICAL FIX: Only login if paid/approved. Otherwise stay pending.
+          if (updatedUser.isPaid) {
+            setPendingUser(null);
+            onLogin(updatedUser);
+          } else {
+            setPendingUser(updatedUser); // Force re-render of PaymentGateway to show "Pending" screen
+          }
+        }}
         onLogout={() => setPendingUser(null)} 
       />
     );
@@ -140,7 +195,6 @@ const BookAuth: React.FC<BookAuthProps> = ({ onLogin }) => {
 
   return (
     <div className="min-h-screen bg-[#02040a] flex items-center justify-center p-4 relative overflow-hidden font-sans">
-      {/* Background Elements */}
       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-500 to-transparent opacity-50"></div>
       <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-cyan-900/10 rounded-full blur-[100px] pointer-events-none"></div>
       <div className="absolute top-20 left-20 w-[300px] h-[300px] bg-blue-900/10 rounded-full blur-[80px] pointer-events-none"></div>
@@ -180,7 +234,6 @@ const BookAuth: React.FC<BookAuthProps> = ({ onLogin }) => {
              © 2024 TechNexus Academy. All rights reserved.
            </div>
 
-           {/* Decorative Grid */}
            <div className="absolute inset-0 bg-grid-pattern opacity-10 pointer-events-none"></div>
         </div>
 
@@ -188,111 +241,178 @@ const BookAuth: React.FC<BookAuthProps> = ({ onLogin }) => {
         <div className="w-full md:w-1/2 bg-[#0a0f1c] p-8 md:p-12 flex flex-col justify-center relative">
           
           <div className="absolute top-6 right-6 flex gap-2">
-            <button 
-               onClick={() => { setAuthMode('login'); setIsVerifying(false); setError(null); }}
-               className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${authMode === 'login' ? 'bg-slate-800 text-white' : 'text-slate-500 hover:text-white'}`}
-            >
-              Login
-            </button>
-            <button 
-               onClick={() => { setAuthMode('signup'); setIsVerifying(false); setError(null); }}
-               className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${authMode === 'signup' ? 'bg-slate-800 text-white' : 'text-slate-500 hover:text-white'}`}
-            >
-              Register
-            </button>
+            {!isVerifying && !isResetting && (
+              <>
+                <button 
+                  onClick={() => { setAuthMode('login'); setError(null); setSuccessMsg(null); }}
+                  className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${authMode === 'login' ? 'bg-slate-800 text-white' : 'text-slate-500 hover:text-white'}`}
+                >
+                  Login
+                </button>
+                <button 
+                  onClick={() => { setAuthMode('signup'); setError(null); setSuccessMsg(null); }}
+                  className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${authMode === 'signup' ? 'bg-slate-800 text-white' : 'text-slate-500 hover:text-white'}`}
+                >
+                  Register
+                </button>
+              </>
+            )}
           </div>
 
           <div className="max-w-sm mx-auto w-full mt-8 md:mt-0">
-            <h2 className="text-2xl font-bold text-white mb-1">
-              {isVerifying ? 'Verify Email' : authMode === 'login' ? 'Welcome Back' : 'Create Account'}
-            </h2>
-            <p className="text-slate-400 text-sm mb-8">
-              {isVerifying ? `Code sent to ${email}` : authMode === 'login' ? 'Enter your credentials to access.' : 'Start your journey today.'}
-            </p>
+            {isVerifying || isResetting ? (
+               <div>
+                 <h2 className="text-2xl font-bold text-white mb-1">
+                   {isResetting ? 'Reset Password' : 'Verify Email'}
+                 </h2>
+                 <p className="text-slate-400 text-sm mb-6">
+                   Code sent to {email}
+                 </p>
+                 
+                 <form onSubmit={isResetting ? handleResetSubmit : handleVerificationSubmit} className="space-y-5">
+                    <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-700 text-center">
+                        <p className="text-xs text-cyan-500 font-bold uppercase tracking-wider mb-2">Demo Code</p>
+                        <div className="text-3xl font-mono font-bold text-white tracking-[0.5em] cursor-pointer hover:text-cyan-400 transition-colors" onClick={() => setUserEnteredCode(verificationCode)} title="Click to Auto-fill">
+                          {verificationCode}
+                        </div>
+                    </div>
+                    
+                    <input 
+                      type="text" 
+                      placeholder="Enter 6-digit Code"
+                      maxLength={6}
+                      className="w-full bg-[#161b2e] border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-cyan-500 transition-colors text-center text-xl tracking-widest font-mono"
+                      value={userEnteredCode}
+                      onChange={(e) => setUserEnteredCode(e.target.value.replace(/\D/g, ''))}
+                      required
+                    />
 
-            {isVerifying ? (
-               /* VERIFICATION FORM */
-               <form onSubmit={handleVerificationSubmit} className="space-y-5">
-                  <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-700 text-center">
-                      <p className="text-xs text-cyan-500 font-bold uppercase tracking-wider mb-2">Demo Code</p>
-                      <div className="text-3xl font-mono font-bold text-white tracking-[0.5em] cursor-pointer" onClick={() => setUserEnteredCode(verificationCode)}>
-                        {verificationCode}
+                    {isResetting && (
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-3.5 text-slate-500" size={18} />
+                        <input 
+                          type="password" placeholder="New Password"
+                          className="w-full bg-[#161b2e] border border-slate-700 rounded-xl pl-10 pr-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors text-sm"
+                          value={newPassword} onChange={e => setNewPassword(e.target.value)} required
+                        />
                       </div>
-                  </div>
-                  <input 
-                    type="text" 
-                    placeholder="Enter 6-digit Code"
-                    maxLength={6}
-                    className="w-full bg-[#161b2e] border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-cyan-500 transition-colors text-center text-xl tracking-widest font-mono"
-                    value={userEnteredCode}
-                    onChange={(e) => setUserEnteredCode(e.target.value.replace(/\D/g, ''))}
-                  />
-                  {error && <p className="text-red-400 text-xs flex items-center gap-2"><X size={12} /> {error}</p>}
-                  <button type="submit" className="w-full py-3 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-xl transition-all">Verify & Register</button>
-                  <button type="button" onClick={() => setIsVerifying(false)} className="w-full text-sm text-slate-500 mt-2">Back</button>
-               </form>
-            ) : (
-               /* LOGIN / SIGNUP FORM */
-               <form onSubmit={authMode === 'login' ? handleLoginSubmit : handleSignupInitiate} className="space-y-4">
-                  {/* Role Selection */}
-                  <div className="flex p-1 bg-[#161b2e] rounded-lg mb-6">
-                     <button type="button" onClick={() => setRole('STUDENT')} className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${role === 'STUDENT' ? 'bg-cyan-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}>STUDENT</button>
-                     <button type="button" onClick={() => setRole('ADMIN')} className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${role === 'ADMIN' ? 'bg-violet-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}>ADMIN</button>
-                  </div>
+                    )}
 
-                  {authMode === 'signup' && (
+                    {error && <p className="text-red-400 text-xs flex items-center gap-2"><X size={12} /> {error}</p>}
+                    
+                    <button type="submit" className="w-full py-3 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-xl transition-all">
+                       {isResetting ? 'Update Password' : 'Verify & Register'}
+                    </button>
+                    
+                    <button 
+                      type="button" 
+                      onClick={() => { setIsVerifying(false); setIsResetting(false); setAuthMode('login'); }} 
+                      className="w-full text-sm text-slate-500 mt-2 flex items-center justify-center gap-1 hover:text-white"
+                    >
+                      <ArrowLeft size={14} /> Back
+                    </button>
+                 </form>
+               </div>
+            ) : authMode === 'forgot' ? (
+               <div>
+                  <h2 className="text-2xl font-bold text-white mb-1">Forgot Password?</h2>
+                  <p className="text-slate-400 text-sm mb-8">Enter your email to receive a reset code.</p>
+                  
+                  <form onSubmit={handleForgotInitiate} className="space-y-4">
+                     <div className="relative">
+                        <Mail className="absolute left-3 top-3.5 text-slate-500" size={18} />
+                        <input 
+                          type="text" placeholder="Email Address"
+                          className="w-full bg-[#161b2e] border border-slate-700 rounded-xl pl-10 pr-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors text-sm"
+                          value={email} onChange={e => setEmail(e.target.value)} required
+                        />
+                     </div>
+                     {error && <div className="p-3 bg-red-900/20 border border-red-900/50 rounded-lg text-red-400 text-xs flex items-center gap-2"><X size={14} />{error}</div>}
+                     
+                     <button type="submit" className="w-full py-3 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-xl transition-all">
+                       Send Verification Code
+                     </button>
+                     
+                     <button type="button" onClick={() => setAuthMode('login')} className="w-full text-sm text-slate-500 mt-2 hover:text-white">
+                        Cancel
+                     </button>
+                  </form>
+               </div>
+            ) : (
+               <div>
+                 <h2 className="text-2xl font-bold text-white mb-1">
+                   {authMode === 'login' ? 'Welcome Back' : 'Create Account'}
+                 </h2>
+                 <p className="text-slate-400 text-sm mb-6">
+                   {authMode === 'login' ? 'Enter your credentials to access.' : 'Start your journey today.'}
+                 </p>
+
+                 <form onSubmit={authMode === 'login' ? handleLoginSubmit : handleSignupInitiate} className="space-y-4">
+                    <div className="flex p-1 bg-[#161b2e] rounded-lg mb-6">
+                       <button type="button" onClick={() => setRole('STUDENT')} className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${role === 'STUDENT' ? 'bg-cyan-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}>STUDENT</button>
+                       <button type="button" onClick={() => setRole('ADMIN')} className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${role === 'ADMIN' ? 'bg-violet-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}>ADMIN</button>
+                    </div>
+
+                    {authMode === 'signup' && (
+                      <div className="relative">
+                        <Users className="absolute left-3 top-3.5 text-slate-500" size={18} />
+                        <input 
+                          type="text" placeholder="Full Name"
+                          className="w-full bg-[#161b2e] border border-slate-700 rounded-xl pl-10 pr-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors text-sm"
+                          value={name} onChange={e => setName(e.target.value)} required
+                        />
+                      </div>
+                    )}
+
                     <div className="relative">
-                      <Users className="absolute left-3 top-3.5 text-slate-500" size={18} />
+                      <Mail className="absolute left-3 top-3.5 text-slate-500" size={18} />
                       <input 
-                        type="text" placeholder="Full Name"
+                        type="text" placeholder="Email Address"
                         className="w-full bg-[#161b2e] border border-slate-700 rounded-xl pl-10 pr-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors text-sm"
-                        value={name} onChange={e => setName(e.target.value)} required
+                        value={email} onChange={e => setEmail(e.target.value)} required
                       />
                     </div>
-                  )}
 
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-3.5 text-slate-500" size={18} />
-                    <input 
-                      type="text" placeholder="Email Address"
-                      className="w-full bg-[#161b2e] border border-slate-700 rounded-xl pl-10 pr-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors text-sm"
-                      value={email} onChange={e => setEmail(e.target.value)} required
-                    />
-                  </div>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-3.5 text-slate-500" size={18} />
+                      <input 
+                        type="password" placeholder="Password"
+                        className="w-full bg-[#161b2e] border border-slate-700 rounded-xl pl-10 pr-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors text-sm"
+                        value={password} onChange={e => setPassword(e.target.value)} required
+                      />
+                    </div>
 
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-3.5 text-slate-500" size={18} />
-                    <input 
-                      type="password" placeholder="Password"
-                      className="w-full bg-[#161b2e] border border-slate-700 rounded-xl pl-10 pr-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors text-sm"
-                      value={password} onChange={e => setPassword(e.target.value)} required
-                    />
-                  </div>
+                    {authMode === 'login' && (
+                      <div className="flex justify-end">
+                        <button type="button" onClick={() => setAuthMode('forgot')} className="text-xs text-cyan-400 hover:text-cyan-300">Forgot Password?</button>
+                      </div>
+                    )}
 
-                  {error && <div className="p-3 bg-red-900/20 border border-red-900/50 rounded-lg text-red-400 text-xs flex items-center gap-2"><X size={14} />{error}</div>}
-                  {successMsg && <div className="p-3 bg-emerald-900/20 border border-emerald-900/50 rounded-lg text-emerald-400 text-xs flex items-center gap-2"><CheckCircle size={14} />{successMsg}</div>}
+                    {error && <div className="p-3 bg-red-900/20 border border-red-900/50 rounded-lg text-red-400 text-xs flex items-center gap-2"><X size={14} />{error}</div>}
+                    {successMsg && <div className="p-3 bg-emerald-900/20 border border-emerald-900/50 rounded-lg text-emerald-400 text-xs flex items-center gap-2"><CheckCircle size={14} />{successMsg}</div>}
 
-                  <button type="submit" className="w-full py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold rounded-xl shadow-lg shadow-cyan-900/20 transition-all text-sm flex items-center justify-center gap-2">
-                    {authMode === 'login' ? 'Access Account' : 'Create Account'} <ChevronRight size={16} />
-                  </button>
-               </form>
+                    <button type="submit" className="w-full py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold rounded-xl shadow-lg shadow-cyan-900/20 transition-all text-sm flex items-center justify-center gap-2">
+                      {authMode === 'login' ? 'Access Account' : 'Create Account'} <ChevronRight size={16} />
+                    </button>
+                 </form>
+
+                 <div className="mt-8">
+                    <div className="flex items-center gap-3 mb-4">
+                       <div className="h-px bg-slate-800 flex-1"></div>
+                       <span className="text-[10px] uppercase text-slate-600 font-bold">Or connect with</span>
+                       <div className="h-px bg-slate-800 flex-1"></div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                       <button onClick={() => handleSocialLogin('Google')} className="py-2.5 rounded-xl border border-slate-700 bg-[#161b2e] text-slate-300 hover:bg-slate-800 hover:text-white transition-all text-xs font-bold flex items-center justify-center gap-2">
+                          <Globe size={14} /> Google
+                       </button>
+                       <button onClick={() => handleSocialLogin('Facebook')} className="py-2.5 rounded-xl border border-slate-700 bg-[#161b2e] text-slate-300 hover:bg-slate-800 hover:text-white transition-all text-xs font-bold flex items-center justify-center gap-2">
+                          <Facebook size={14} /> Facebook
+                       </button>
+                    </div>
+                 </div>
+               </div>
             )}
-
-            <div className="mt-8">
-              <div className="flex items-center gap-3 mb-4">
-                 <div className="h-px bg-slate-800 flex-1"></div>
-                 <span className="text-[10px] uppercase text-slate-600 font-bold">Or connect with</span>
-                 <div className="h-px bg-slate-800 flex-1"></div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                 <button onClick={() => handleSocialLogin('Google')} className="py-2.5 rounded-xl border border-slate-700 bg-[#161b2e] text-slate-300 hover:bg-slate-800 hover:text-white transition-all text-xs font-bold flex items-center justify-center gap-2">
-                    <Globe size={14} /> Google
-                 </button>
-                 <button onClick={() => handleSocialLogin('Facebook')} className="py-2.5 rounded-xl border border-slate-700 bg-[#161b2e] text-slate-300 hover:bg-slate-800 hover:text-white transition-all text-xs font-bold flex items-center justify-center gap-2">
-                    <Facebook size={14} /> Facebook
-                 </button>
-              </div>
-            </div>
           </div>
         </div>
       </div>
