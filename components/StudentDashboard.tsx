@@ -4,7 +4,7 @@ import CourseCard from './CourseCard';
 import CodeLab from './CodeLab';
 import { generateTutorResponse } from '../services/geminiService';
 import { dataService } from '../services/dataService';
-import { Search, Sparkles, Send, X, MessageSquare, LogOut, Code, Cpu, Terminal, Globe, BookOpen, Layers, ChevronRight, Play } from 'lucide-react';
+import { Search, Sparkles, Send, X, MessageSquare, LogOut, Code, Cpu, Terminal, Globe, BookOpen, Layers, ChevronRight, Play, Trophy } from 'lucide-react';
 
 interface StudentDashboardProps {
   user: User;
@@ -12,18 +12,17 @@ interface StudentDashboardProps {
 }
 
 type View = 'courses' | 'labs' | 'academy' | 'community';
-
-// Sub-states for Academy View
 type AcademyState = 'list' | 'modules' | 'problems' | 'assessment';
 
 const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) => {
-  const [activeView, setActiveView] = useState<View>('academy'); // Default to Academy as per request
-  
-  // Academy Flow State
+  const [activeView, setActiveView] = useState<View>('academy');
   const [academyState, setAcademyState] = useState<AcademyState>('list');
   const [selectedLanguage, setSelectedLanguage] = useState<string>('');
   const [selectedModule, setSelectedModule] = useState<string>('');
   const [assessmentProblem, setAssessmentProblem] = useState<Problem | null>(null);
+  
+  // Real-time score update
+  const [currentScore, setCurrentScore] = useState(user.score || 0);
 
   const [activeCourse, setActiveCourse] = useState<Course | null>(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -33,6 +32,13 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Sync user score from service on mount/updates
+  useEffect(() => {
+     // Re-fetch user to get updated score
+     const updatedUser = dataService.getUsers().find(u => u.id === user.id);
+     if (updatedUser) setCurrentScore(updatedUser.score || 0);
+  }, [academyState, activeView]); 
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -63,6 +69,14 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
     setIsLoading(false);
   };
 
+  const handleAssessmentExit = () => {
+    setAcademyState('problems');
+    setAssessmentProblem(null);
+    // Refresh score
+    const updatedUser = dataService.getUsers().find(u => u.id === user.id);
+    if(updatedUser) setCurrentScore(updatedUser.score || 0);
+  };
+
   // --- Academy Render Logic ---
   const renderAcademy = () => {
     if (academyState === 'assessment' && assessmentProblem) {
@@ -70,10 +84,8 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
          <CodeLab 
             initialProblem={assessmentProblem} 
             isAssessmentMode={true}
-            onExit={() => {
-              setAcademyState('problems');
-              setAssessmentProblem(null);
-            }} 
+            currentUser={user}
+            onExit={handleAssessmentExit} 
          />
        );
     }
@@ -153,19 +165,22 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
            <h2 className="text-3xl font-bold mb-8 text-white">Select Topic</h2>
            
            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-             {problems.map(prob => (
+             {problems.map(prob => {
+               const isCompleted = user.completedProblems?.includes(prob.id);
+               return (
                <div 
                  key={prob.id}
-                 className="bg-[#0f172a]/80 border border-slate-800 rounded-xl overflow-hidden hover:border-cyan-500/40 transition-all group flex flex-col h-full"
+                 className={`bg-[#0f172a]/80 border ${isCompleted ? 'border-emerald-500/30' : 'border-slate-800'} rounded-xl overflow-hidden hover:border-cyan-500/40 transition-all group flex flex-col h-full`}
                >
-                  <div className="h-2 bg-gradient-to-r from-cyan-600 to-blue-600 w-full" />
+                  <div className={`h-2 w-full ${isCompleted ? 'bg-emerald-500' : 'bg-gradient-to-r from-cyan-600 to-blue-600'}`} />
                   <div className="p-6 flex-1 flex flex-col">
                     <div className="flex justify-between items-start mb-4">
                        <span className={`px-2 py-1 rounded text-xs font-bold ${
                          prob.difficulty === 'L0' ? 'bg-emerald-500/10 text-emerald-400' :
                          prob.difficulty === 'L1' ? 'bg-yellow-500/10 text-yellow-400' :
                          'bg-red-500/10 text-red-400'
-                       }`}>{prob.difficulty}</span>
+                       }`}>{prob.difficulty} ({prob.points} pts)</span>
+                       {isCompleted && <Trophy size={16} className="text-yellow-500" />}
                     </div>
                     <h3 className="text-xl font-bold text-white mb-2">{prob.title}</h3>
                     <p className="text-slate-400 text-sm mb-6 line-clamp-3">{prob.description}</p>
@@ -175,11 +190,11 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
                       className="mt-auto w-full py-3 bg-slate-800 text-white rounded-lg font-bold group-hover:bg-cyan-600 transition-colors flex items-center justify-center gap-2"
                     >
                       <Play size={16} fill="currentColor" />
-                      Start Assessment
+                      {isCompleted ? 'Practice Again' : 'Start Assessment'}
                     </button>
                   </div>
                </div>
-             ))}
+             )})}
            </div>
         </div>
       );
@@ -197,6 +212,13 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
              </div>
              <span className="font-bold text-lg hidden md:block text-slate-100 tracking-tight">TechNexus</span>
            </div>
+        </div>
+
+        {/* Score Display in Sidebar */}
+        <div className="p-4 mx-4 mt-6 rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 text-center">
+            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Total Score</h4>
+            <div className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500">{currentScore}</div>
+            <div className="text-[10px] text-slate-500">Points Accumulated</div>
         </div>
         
         <nav className="flex-1 p-4 space-y-2">
@@ -241,6 +263,10 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
              Welcome, {user.name}
           </h2>
           <div className="flex items-center gap-4">
+             <div className="md:hidden flex items-center gap-2 bg-slate-800 px-3 py-1 rounded-full">
+                <Trophy size={14} className="text-yellow-500" />
+                <span className="font-bold text-sm">{currentScore}</span>
+             </div>
              <button onClick={onLogout} className="md:hidden p-2 text-slate-400">
                <LogOut size={20} />
              </button>
@@ -249,7 +275,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
 
         <main className="p-6 overflow-y-auto flex-1">
           {activeView === 'academy' && renderAcademy()}
-          {activeView === 'labs' && <CodeLab />}
+          {activeView === 'labs' && <CodeLab currentUser={user} />}
           {activeView === 'courses' && (
              <div className="text-center py-20">
                <Cpu size={48} className="mx-auto text-slate-600 mb-4"/>
@@ -260,7 +286,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
         </main>
       </div>
 
-      {/* Floating Chat Button (Same as before) */}
+      {/* Floating Chat Button */}
       <div className="fixed bottom-6 right-6 z-50">
         {!isChatOpen && (
           <button 

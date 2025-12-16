@@ -1,5 +1,5 @@
 export type Role = 'ADMIN' | 'STUDENT' | 'GUEST';
-export type Difficulty = 'L0' | 'L1' | 'L2' | 'L3';
+export type Difficulty = 'L0' | 'L1' | 'L2';
 
 export interface User {
   id: string;
@@ -10,6 +10,8 @@ export interface User {
   plan?: 'STUDENT' | 'PROFESSIONAL';
   paymentStatus?: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED' | 'NONE';
   joinedDate?: Date;
+  score?: number; // Total accumulated score
+  completedProblems?: string[]; // IDs of solved problems
 }
 
 export interface Course {
@@ -44,6 +46,7 @@ export interface Problem {
   starterCode: string;
   testCases: TestCase[];
   module?: string; // e.g., "Basic Python", "Data Structures"
+  points?: number;
 }
 
 export interface TestResult {
@@ -56,7 +59,8 @@ export interface TestResult {
 
 export interface AssessmentSummary {
   problemId: string;
-  score: number; // 0 to 100
+  score: number; // The points awarded (0 or Full)
+  maxPoints: number; // The max points for this problem
   totalTests: number;
   passedTests: number;
   testResults: TestResult[];

@@ -31,7 +31,7 @@ export const generateTutorResponse = async (
 export const runCodeSimulation = async (
   code: string,
   language: string,
-  problemDescription: string
+  inputData: string = ""
 ): Promise<string> => {
   if (!apiKey) return "Error: API Key missing.";
 
@@ -40,10 +40,23 @@ export const runCodeSimulation = async (
       model: 'gemini-2.5-flash',
       contents: `
         Act as a Code Execution Engine.
-        Language: ${language}
-        Problem: ${problemDescription}
-        Code: ${code}
-        Task: Execute logic and return STDOUT only. If error, return error message.
+        
+        LANGUAGE: ${language}
+        
+        CODE TO EXECUTE:
+        \`\`\`${language}
+        ${code}
+        \`\`\`
+        
+        STANDARD INPUT (stdin):
+        ${inputData}
+        
+        INSTRUCTIONS:
+        1. Simulate the execution of the code strictly.
+        2. When the code calls input() or similar functions, read values sequentially from the STANDARD INPUT provided above.
+        3. If input() is called but STANDARD INPUT is empty or exhausted, simulate an EOFError or empty string depending on language behavior, but preferably just stop reading.
+        4. Return ONLY the STANDARD OUTPUT (stdout). Do not include any explanation, markdown formatting, or preamble.
+        5. If there is a syntax error or runtime error, print the error message exactly as the compiler/interpreter would.
       `,
     });
     return response.text || "No output.";
