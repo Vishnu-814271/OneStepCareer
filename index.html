@@ -6,43 +6,95 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>TechNexus Academy</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Premium Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;700&family=Outfit:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+              heading: ['Outfit', 'sans-serif'],
+              mono: ['JetBrains Mono', 'monospace'],
+            },
+            colors: {
+              cyber: {
+                50: '#f0fdfa',
+                100: '#ccfbf1',
+                200: '#99f6e4',
+                300: '#5eead4',
+                400: '#2dd4bf',
+                500: '#14b8a6',
+                600: '#0d9488',
+                700: '#0f766e',
+                800: '#115e59',
+                900: '#134e4a',
+                950: '#042f2e',
+              }
+            }
+          }
+        }
+      }
+    </script>
     <style>
-      /* Custom 3D Book Styles */
-      .perspective-2000 {
-        perspective: 2000px;
+      /* Smooth scrolling */
+      html {
+        scroll-behavior: smooth;
       }
-      .transform-style-3d {
-        transform-style: preserve-3d;
+
+      /* Custom Scrollbar */
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
       }
-      .backface-hidden {
-        backface-visibility: hidden;
+      ::-webkit-scrollbar-track {
+        background: #020617; 
       }
-      .rotate-y-180 {
-        transform: rotateY(-180deg);
+      ::-webkit-scrollbar-thumb {
+        background: #1e293b; 
+        border-radius: 4px;
       }
-      /* Smooth scrolling for chat */
-      .scrollbar-hide::-webkit-scrollbar {
-          display: none;
+      ::-webkit-scrollbar-thumb:hover {
+        background: #334155; 
       }
-      .scrollbar-hide {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
+
+      /* Utility Classes */
+      .glass-panel {
+        background: rgba(15, 23, 42, 0.6);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
       }
       
-      /* Cyber Tech Animations */
+      .text-glow {
+        text-shadow: 0 0 20px rgba(45, 212, 191, 0.5);
+      }
+
+      /* Animations */
       @keyframes float {
-        0%, 100% { transform: translateY(0); }
+        0%, 100% { transform: translateY(0px); }
         50% { transform: translateY(-10px); }
       }
       .animate-float {
         animation: float 6s ease-in-out infinite;
       }
-      
-      .glass-panel {
-        background: rgba(15, 23, 42, 0.6);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+
+      @keyframes grid-move {
+        0% { transform: translateY(0); }
+        100% { transform: translateY(40px); }
+      }
+      .animate-grid {
+        animation: grid-move 3s linear infinite;
+      }
+
+      /* Background Grid Pattern */
+      .bg-grid-pattern {
+        background-size: 40px 40px;
+        background-image: linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                          linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
       }
     </style>
   <script type="importmap">
@@ -57,7 +109,7 @@
 }
 </script>
 </head>
-  <body class="bg-[#050b14] text-slate-200 antialiased overflow-x-hidden selection:bg-cyan-500/30 selection:text-cyan-200">
+  <body class="bg-[#020617] text-slate-200 antialiased overflow-x-hidden selection:bg-cyan-500/30 selection:text-cyan-200">
     <div id="root"></div>
   </body>
 </html>
