@@ -1,6 +1,7 @@
+
 import { User, Problem, Difficulty, CommunityMessage } from '../types';
 
-const STORAGE_KEY = 'technexus_db_v3'; // Incremented version to force clear old bad data if any
+const STORAGE_KEY = 'technexus_db_v3'; 
 
 // --- INITIAL SEED DATA ---
 const initialUsers: User[] = [
@@ -125,7 +126,6 @@ const getState = (): AppData => {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       const parsed = JSON.parse(stored);
-      // Merge with default state to ensure structure integrity
       return { 
         ...defaultState, 
         ...parsed,
@@ -136,7 +136,6 @@ const getState = (): AppData => {
   } catch (e) {
     console.error("Failed to load data", e);
   }
-  // Initialize if empty
   localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultState));
   return defaultState;
 };
@@ -150,7 +149,6 @@ const saveState = (state: AppData) => {
 };
 
 export const dataService = {
-  // USER OPERATIONS
   getUsers: (): User[] => {
     return getState().users;
   },
@@ -163,7 +161,7 @@ export const dataService = {
   registerUser: (user: User): boolean => {
     const state = getState();
     if (state.users.some(u => u.email.toLowerCase() === user.email.toLowerCase())) {
-      return false; // User exists
+      return false; 
     }
     state.users.push({ 
       ...user, 
@@ -222,9 +220,10 @@ export const dataService = {
     const state = getState();
     const userIndex = state.users.findIndex(u => u.id === userId);
     if (userIndex !== -1) {
-      state.users[userIndex].paymentStatus = 'PENDING_APPROVAL';
+      // AUTO APPROVAL: Set status to APPROVED immediately
+      state.users[userIndex].paymentStatus = 'APPROVED';
       state.users[userIndex].plan = plan;
-      state.users[userIndex].isPaid = false; 
+      state.users[userIndex].isPaid = true; 
       saveState(state);
       return state.users[userIndex];
     }
@@ -255,7 +254,6 @@ export const dataService = {
     return undefined;
   },
 
-  // LANGUAGE OPERATIONS
   getLanguages: (): string[] => {
     return getState().languages;
   },
@@ -268,7 +266,6 @@ export const dataService = {
     return true;
   },
 
-  // PROBLEM OPERATIONS
   getProblems: (): Problem[] => {
     return getState().problems;
   },
@@ -306,7 +303,6 @@ export const dataService = {
     saveState(state);
   },
 
-  // COMMUNITY MESSAGES
   getCommunityMessages: (): CommunityMessage[] => {
     const state = getState();
     return [...state.communityMessages].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());

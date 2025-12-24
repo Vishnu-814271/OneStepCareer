@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { User, Problem, Difficulty, TestCase } from '../types';
 import { LogOut, Plus, Users, BarChart3, Settings, BookOpen, Trash2, Edit, Code, Save, X, Folder, ChevronRight, ArrowLeft, LayoutGrid, CheckCircle, AlertCircle, XCircle, MessageSquare } from 'lucide-react';
@@ -12,14 +13,12 @@ interface AdminDashboardProps {
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'courses' | 'labs' | 'students' | 'community'>('overview');
   
-  // Lab Management State
   const [labView, setLabView] = useState<'folders' | 'questions'>('folders');
   const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null);
   const [languages, setLanguages] = useState<string[]>([]);
   const [problems, setProblems] = useState<Problem[]>([]);
   const [usersList, setUsersList] = useState<User[]>([]);
 
-  // Modal States
   const [isEditingProblem, setIsEditingProblem] = useState(false);
   const [isAddingLanguage, setIsAddingLanguage] = useState(false);
   const [newLanguageName, setNewLanguageName] = useState('');
@@ -34,13 +33,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
     module: ''
   });
 
-  // Initial Load
   useEffect(() => {
     refreshData();
   }, [activeTab]); 
 
   const refreshData = () => {
-    // Force reload from local storage
     setLanguages(dataService.getLanguages());
     setProblems(dataService.getProblems());
     setUsersList(dataService.getUsers().filter(u => u.role === 'STUDENT'));
@@ -63,11 +60,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
       id: currentProblem.id || Math.random().toString(36).substr(2, 9),
       title: currentProblem.title!,
       description: currentProblem.description!,
-      language: selectedLanguage, // Force current folder language
+      language: selectedLanguage, 
       difficulty: (currentProblem.difficulty as Difficulty) || 'L0',
       starterCode: currentProblem.starterCode || '// Write code here',
       testCases: currentProblem.testCases || [],
-      module: currentProblem.module || 'General' // Default to General if empty
+      module: currentProblem.module || 'General' 
     };
 
     if (currentProblem.id) {
@@ -93,26 +90,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
     setIsEditingProblem(true);
   };
 
-  const handleApprovePayment = (studentId: string) => {
-    // Explicitly ask for confirmation
-    if (window.confirm("Grant portal access to this student?")) {
-      const approvedUser = dataService.approvePayment(studentId);
-      refreshData(); // Immediate UI update
-      if (approvedUser) {
-        // Explicit success feedback as requested
-        alert(`Successfully Approved! ${approvedUser.name} now has access.`);
-      }
-    }
-  };
-
-  const handleRejectPayment = (studentId: string) => {
-    if (window.confirm("Reject access for this student?")) {
-      dataService.rejectPayment(studentId);
-      refreshData();
-    }
-  };
-  
-  // Test Case Management inside Modal
   const addTestCase = () => {
     const newCase: TestCase = { input: '', expectedOutput: '', isHidden: false };
     setCurrentProblem({
@@ -138,7 +115,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
   const stats = [
     { title: 'Total Students', value: usersList.length.toString(), icon: Users, color: 'text-cyan-400', bg: 'bg-cyan-400/10' },
     { title: 'Total Problems', value: problems.length.toString(), icon: Code, color: 'text-violet-400', bg: 'bg-violet-400/10' },
-    { title: 'Pending Payments', value: usersList.filter(u => u.paymentStatus === 'PENDING_APPROVAL').length.toString(), icon: AlertCircle, color: 'text-yellow-400', bg: 'bg-yellow-400/10' },
+    { title: 'Active Members', value: usersList.filter(u => u.paymentStatus === 'APPROVED').length.toString(), icon: CheckCircle, color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
   ];
 
   return (
@@ -229,7 +206,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
                        <th className="p-4">Email</th>
                        <th className="p-4">Status</th>
                        <th className="p-4">Plan</th>
-                       <th className="p-4 text-right pr-6">Actions</th>
+                       <th className="p-4 text-right pr-6">Joined Date</th>
                      </tr>
                    </thead>
                    <tbody className="divide-y divide-slate-800">
@@ -242,42 +219,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
                              <span className="px-2 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-bold rounded-full border border-emerald-500/30 flex w-fit items-center gap-1">
                                <CheckCircle size={10} /> Active
                              </span>
-                           ) : student.paymentStatus === 'PENDING_APPROVAL' ? (
-                             <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 text-xs font-bold rounded-full border border-yellow-500/30 flex w-fit items-center gap-1 animate-pulse">
-                               <AlertCircle size={10} /> Pending
-                             </span>
-                           ) : student.paymentStatus === 'REJECTED' ? (
-                             <span className="px-2 py-1 bg-red-500/20 text-red-400 text-xs font-bold rounded-full border border-red-500/30 flex w-fit items-center gap-1">
-                               <XCircle size={10} /> Rejected
-                             </span>
                            ) : (
                              <span className="px-2 py-1 bg-slate-700 text-slate-400 text-xs font-bold rounded-full border border-slate-600">
-                               Not Paid
+                               Inactive
                              </span>
                            )}
                          </td>
-                         <td className="p-4 text-slate-300 text-sm">{student.plan || '-'}</td>
-                         <td className="p-4 text-right pr-6">
-                            {student.paymentStatus === 'PENDING_APPROVAL' ? (
-                              <div className="flex justify-end gap-2">
-                                <button 
-                                  onClick={() => handleApprovePayment(student.id)}
-                                  className="flex items-center gap-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded transition-colors shadow-lg shadow-emerald-900/20"
-                                >
-                                  <CheckCircle size={12} /> Approve
-                                </button>
-                                <button 
-                                  onClick={() => handleRejectPayment(student.id)}
-                                  className="flex items-center gap-1 px-3 py-1.5 bg-red-600/20 hover:bg-red-600 hover:text-white text-red-400 text-xs font-bold rounded transition-colors border border-red-900/30"
-                                >
-                                  <XCircle size={12} /> Reject
-                                </button>
-                              </div>
-                            ) : (
-                               <div className="flex justify-end">
-                                 <span className="text-slate-600 text-xs italic">No actions available</span>
-                               </div>
-                            )}
+                         <td className="p-4 text-slate-300 text-sm">{student.plan || 'Free'}</td>
+                         <td className="p-4 text-right pr-6 text-slate-500 text-xs">
+                           {student.joinedDate ? new Date(student.joinedDate).toLocaleDateString() : 'N/A'}
                          </td>
                        </tr>
                      ))}
