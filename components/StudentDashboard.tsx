@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { User, Course, ChatMessage, Problem } from '../types';
-import CourseCard from './CourseCard';
 import CodeLab from './CodeLab';
 import { generateTutorResponse } from '../services/geminiService';
 import { dataService } from '../services/dataService';
-import { Search, Sparkles, Send, X, MessageSquare, LogOut, Code, Cpu, Terminal, Globe, BookOpen, Layers, ChevronRight, Play, Trophy } from 'lucide-react';
+import { Sparkles, Send, X, MessageSquare, LogOut, Code, Terminal, BookOpen, ChevronRight, Play, Trophy, User as UserIcon, Save, Mail, Camera, CheckCircle, GraduationCap } from 'lucide-react';
 import CommunityChat from './CommunityChat';
 
 interface StudentDashboardProps {
@@ -12,7 +11,7 @@ interface StudentDashboardProps {
   onLogout: () => void;
 }
 
-type View = 'courses' | 'labs' | 'academy' | 'community';
+type View = 'academy' | 'community' | 'labs';
 type AcademyState = 'list' | 'modules' | 'problems' | 'assessment';
 
 const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) => {
@@ -22,176 +21,131 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
   const [selectedModule, setSelectedModule] = useState<string>('');
   const [assessmentProblem, setAssessmentProblem] = useState<Problem | null>(null);
   
-  // Real-time score update
-  const [currentScore, setCurrentScore] = useState(user.score || 0);
+  const [currentUser, setCurrentUser] = useState<User>(user);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [editName, setEditName] = useState(currentUser.name);
+  const [editEmail, setEditEmail] = useState(currentUser.email);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success'>('idle');
 
-  const [activeCourse, setActiveCourse] = useState<Course | null>(null);
+  const [currentScore, setCurrentScore] = useState(currentUser.score || 0);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { role: 'model', text: `Hi ${user.name}! I'm your AI Tutor. Need help with Python, ML, or any other topic?`, timestamp: new Date() }
+    { role: 'model', text: `Welcome back, ${currentUser.name}! I'm your AI Academic Assistant. Ready to code?`, timestamp: new Date() }
   ]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Sync user score from service on mount/updates
   useEffect(() => {
-     // Re-fetch user to get updated score
-     const updatedUser = dataService.getUsers().find(u => u.id === user.id);
-     if (updatedUser) setCurrentScore(updatedUser.score || 0);
+     const freshUser = dataService.getUserById(currentUser.id);
+     if (freshUser) {
+        setCurrentUser(freshUser);
+        setCurrentScore(freshUser.score || 0);
+     }
   }, [academyState, activeView]); 
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages, isChatOpen]);
 
   const handleSendMessage = async () => {
     if (!inputMessage.trim()) return;
-
     const userMsg: ChatMessage = { role: 'user', text: inputMessage, timestamp: new Date() };
     setMessages(prev => [...prev, userMsg]);
     setInputMessage('');
     setIsLoading(true);
-
-    const context = activeCourse 
-      ? `Current Course: ${activeCourse.title}.` 
-      : academyState === 'assessment' 
-        ? `User is solving problem: ${assessmentProblem?.title}.`
-        : "User is browsing the academy.";
-
+    const context = assessmentProblem ? `Student is solving: ${assessmentProblem.title}` : "General Academy Guidance";
     const responseText = await generateTutorResponse(userMsg.text, context);
-    
-    const aiMsg: ChatMessage = { role: 'model', text: responseText, timestamp: new Date() };
-    setMessages(prev => [...prev, aiMsg]);
+    setMessages(prev => [...prev, { role: 'model', text: responseText, timestamp: new Date() }]);
     setIsLoading(false);
   };
 
-  const handleAssessmentExit = () => {
-    setAcademyState('problems');
-    setAssessmentProblem(null);
-    // Refresh score
-    const updatedUser = dataService.getUsers().find(u => u.id === user.id);
-    if(updatedUser) setCurrentScore(updatedUser.score || 0);
+  const handleUpdateProfile = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaveStatus('saving');
+    setTimeout(() => {
+      const updated = dataService.updateUserProfile(currentUser.id, { name: editName, email: editEmail });
+      if (updated) {
+        setCurrentUser(updated);
+        setSaveStatus('success');
+        setTimeout(() => { setSaveStatus('idle'); setIsProfileModalOpen(false); }, 1500);
+      }
+    }, 800);
   };
 
-  // --- Academy Render Logic ---
   const renderAcademy = () => {
     if (academyState === 'assessment' && assessmentProblem) {
-       return (
-         <CodeLab 
-            initialProblem={assessmentProblem} 
-            isAssessmentMode={true}
-            currentUser={user}
-            onExit={handleAssessmentExit} 
-         />
-       );
+       return <CodeLab initialProblem={assessmentProblem} isAssessmentMode={true} currentUser={currentUser} onExit={() => setAcademyState('problems')} />;
     }
-
     if (academyState === 'list') {
-      const languages = dataService.getLanguages();
       return (
-        <div className="animate-fade-in">
-          <h1 className="text-3xl font-bold mb-2 text-white">Academy <span className="text-cyan-400">Hub</span></h1>
-          <p className="text-slate-400 mb-8">Select a learning path to begin your structured training.</p>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {languages.map(lang => (
-              <div 
-                key={lang}
-                onClick={() => { setSelectedLanguage(lang); setAcademyState('modules'); }}
-                className="group bg-[#0f172a]/60 border border-slate-800 hover:border-cyan-500/50 p-6 rounded-2xl cursor-pointer transition-all hover:-translate-y-1 hover:shadow-2xl hover:shadow-cyan-900/10 backdrop-blur-md flex flex-col items-center text-center"
-              >
-                 <div className="w-20 h-20 rounded-full bg-slate-800/80 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-inner border border-slate-700">
-                    <span className="text-2xl font-bold text-cyan-400">{lang[0]}</span>
+        <div className="animate-fade-in space-y-8">
+          <div>
+            <h1 className="text-3xl font-heading font-extrabold mb-2 text-white">Course <span className="text-brand-blue">Catalog</span></h1>
+            <p className="text-slate-400 max-w-2xl">Elite technical training paths designed for mastery and industrial competence.</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {dataService.getLanguages().map(lang => (
+              <div key={lang} onClick={() => { setSelectedLanguage(lang); setAcademyState('modules'); }} className="group glass-card p-8 rounded-2xl cursor-pointer transition-all hover:bg-brand-blue/5 border-l-4 border-l-brand-blue/20 hover:border-l-brand-gold flex flex-col">
+                 <div className="w-16 h-16 rounded-xl bg-brand-blue/10 flex items-center justify-center mb-6 border border-brand-blue/20 group-hover:scale-110 transition-transform">
+                    <span className="text-2xl font-bold text-brand-gold">{lang[0]}</span>
                  </div>
-                 <h3 className="text-xl font-bold text-white mb-2">{lang} Programming</h3>
-                 <p className="text-slate-400 text-sm mb-6">Master {lang} from basics to advanced algorithms.</p>
-                 <button className="mt-auto px-6 py-2 rounded-full bg-slate-800 text-white text-sm font-bold group-hover:bg-cyan-600 transition-colors">Start Learning</button>
+                 <h3 className="text-2xl font-heading font-bold text-white mb-2">{lang} Programming</h3>
+                 <p className="text-slate-400 text-sm mb-8 leading-relaxed">Comprehensive curriculum covering {lang} fundamentals through enterprise-grade architecture.</p>
+                 <button className="mt-auto px-6 py-3 rounded-lg bg-brand-blue/20 border border-brand-blue/40 text-brand-blue font-bold text-sm group-hover:bg-brand-blue group-hover:text-white transition-all uppercase tracking-wider">View Syllabus</button>
               </div>
             ))}
           </div>
         </div>
       );
     }
-
     if (academyState === 'modules') {
-      const modules = dataService.getModulesByLanguage(selectedLanguage);
       return (
         <div className="animate-fade-in">
-           <button onClick={() => setAcademyState('list')} className="mb-6 text-slate-400 hover:text-white flex items-center gap-2 transition-colors">
-              <span className="text-xl">&larr;</span> Back to Paths
+           <button onClick={() => setAcademyState('list')} className="mb-8 text-brand-blue hover:text-brand-gold flex items-center gap-2 font-bold transition-colors">
+              <span className="text-xl">&larr;</span> Back to Catalog
            </button>
-           <h2 className="text-3xl font-bold mb-8 text-white"><span className="text-cyan-400">{selectedLanguage}</span> Modules</h2>
-           
+           <h2 className="text-4xl font-heading font-black mb-10 text-white"><span className="text-brand-gold uppercase tracking-tighter">{selectedLanguage}</span> Learning Path</h2>
            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {modules.map((mod, idx) => (
-                <div 
-                  key={mod}
-                  onClick={() => { setSelectedModule(mod); setAcademyState('problems'); }}
-                  className="bg-[#0f172a]/80 border border-slate-800 p-6 rounded-xl cursor-pointer hover:border-cyan-500/40 hover:bg-[#1e293b]/60 transition-all flex items-center justify-between group"
-                >
-                   <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-lg bg-cyan-900/20 text-cyan-400 flex items-center justify-center font-bold border border-cyan-500/20">
-                        {idx + 1}
-                      </div>
+              {dataService.getModulesByLanguage(selectedLanguage).map((mod, idx) => (
+                <div key={mod} onClick={() => { setSelectedModule(mod); setAcademyState('problems'); }} className="glass-card p-8 rounded-2xl cursor-pointer hover:border-brand-gold/40 hover:bg-brand-blue/5 transition-all flex items-center justify-between group">
+                   <div className="flex items-center gap-6">
+                      <div className="text-3xl font-black text-slate-800 group-hover:text-brand-gold transition-colors">{String(idx + 1).padStart(2, '0')}</div>
                       <div>
-                        <h3 className="text-lg font-bold text-white group-hover:text-cyan-300 transition-colors">{mod}</h3>
-                        <p className="text-sm text-slate-400">{dataService.getProblemsByModule(selectedLanguage, mod).length} Topics</p>
+                        <h3 className="text-xl font-heading font-bold text-white group-hover:text-brand-blue transition-colors">{mod}</h3>
+                        <p className="text-sm text-slate-500 font-medium">{dataService.getProblemsByModule(selectedLanguage, mod).length} Learning Objectives</p>
                       </div>
                    </div>
-                   <ChevronRight className="text-slate-600 group-hover:text-white transition-colors" />
+                   <div className="p-3 rounded-full bg-slate-800/50 group-hover:bg-brand-blue group-hover:text-white text-slate-500 transition-all">
+                      <ChevronRight size={20} />
+                   </div>
                 </div>
               ))}
            </div>
         </div>
       );
     }
-
     if (academyState === 'problems') {
-      const problems = dataService.getProblemsByModule(selectedLanguage, selectedModule);
       return (
         <div className="animate-fade-in">
-           <div className="flex items-center gap-2 text-sm text-slate-400 mb-6">
-              <span onClick={() => setAcademyState('list')} className="cursor-pointer hover:text-white">Academy</span>
-              <ChevronRight size={14} />
-              <span onClick={() => setAcademyState('modules')} className="cursor-pointer hover:text-white">{selectedLanguage}</span>
-              <ChevronRight size={14} />
-              <span className="text-white font-bold">{selectedModule}</span>
+           <div className="flex items-center gap-2 text-xs font-bold text-slate-500 mb-8 uppercase tracking-widest">
+              <span onClick={() => setAcademyState('list')} className="cursor-pointer hover:text-brand-blue">ACADEMY</span>
+              <ChevronRight size={12} />
+              <span onClick={() => setAcademyState('modules')} className="cursor-pointer hover:text-brand-blue">{selectedLanguage}</span>
+              <ChevronRight size={12} />
+              <span className="text-brand-gold">{selectedModule}</span>
            </div>
-
-           <h2 className="text-3xl font-bold mb-8 text-white">Select Topic</h2>
-           
-           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-             {problems.map(prob => {
-               const isCompleted = user.completedProblems?.includes(prob.id);
+           <h2 className="text-3xl font-heading font-extrabold mb-10 text-white">Curated Assessment List</h2>
+           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+             {dataService.getProblemsByModule(selectedLanguage, selectedModule).map(prob => {
+               const isCompleted = currentUser.completedProblems?.includes(prob.id);
                return (
-               <div 
-                 key={prob.id}
-                 className={`bg-[#0f172a]/80 border ${isCompleted ? 'border-emerald-500/30' : 'border-slate-800'} rounded-xl overflow-hidden hover:border-cyan-500/40 transition-all group flex flex-col h-full`}
-               >
-                  <div className={`h-2 w-full ${isCompleted ? 'bg-emerald-500' : 'bg-gradient-to-r from-cyan-600 to-blue-600'}`} />
-                  <div className="p-6 flex-1 flex flex-col">
-                    <div className="flex justify-between items-start mb-4">
-                       <span className={`px-2 py-1 rounded text-xs font-bold ${
-                         prob.difficulty === 'L0' ? 'bg-emerald-500/10 text-emerald-400' :
-                         prob.difficulty === 'L1' ? 'bg-yellow-500/10 text-yellow-400' :
-                         'bg-red-500/10 text-red-400'
-                       }`}>{prob.difficulty} ({prob.points} pts)</span>
-                       {isCompleted && <Trophy size={16} className="text-yellow-500" />}
+               <div key={prob.id} className={`glass-card rounded-2xl overflow-hidden hover:border-brand-gold/30 transition-all group flex flex-col h-full border-t-2 ${isCompleted ? 'border-brand-green/50' : 'border-brand-blue/50'}`}>
+                  <div className="p-8 flex-1 flex flex-col">
+                    <div className="flex justify-between items-center mb-6">
+                       <span className={`px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest ${prob.difficulty === 'L0' ? 'bg-brand-green/10 text-brand-green' : prob.difficulty === 'L1' ? 'bg-brand-gold/10 text-brand-gold' : 'bg-brand-orange/10 text-brand-orange'}`}>{prob.difficulty} LEVEL</span>
+                       {isCompleted ? <Trophy size={18} className="text-brand-gold" /> : <span className="text-xs font-bold text-slate-600 font-mono">+{prob.points} XP</span>}
                     </div>
-                    <h3 className="text-xl font-bold text-white mb-2">{prob.title}</h3>
-                    <p className="text-slate-400 text-sm mb-6 line-clamp-3">{prob.description}</p>
-                    
-                    <button 
-                      onClick={() => { setAssessmentProblem(prob); setAcademyState('assessment'); }}
-                      className="mt-auto w-full py-3 bg-slate-800 text-white rounded-lg font-bold group-hover:bg-cyan-600 transition-colors flex items-center justify-center gap-2"
-                    >
-                      <Play size={16} fill="currentColor" />
-                      {isCompleted ? 'Practice Again' : 'Start Assessment'}
+                    <h3 className="text-xl font-heading font-bold text-white mb-3">{prob.title}</h3>
+                    <p className="text-slate-400 text-sm mb-8 leading-relaxed line-clamp-3">{prob.description}</p>
+                    <button onClick={() => { setAssessmentProblem(prob); setAcademyState('assessment'); }} className={`w-full py-4 rounded-xl font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${isCompleted ? 'bg-slate-800 text-slate-300 hover:bg-slate-700' : 'btn-orange text-white'}`}>
+                      <Play size={14} fill="currentColor" /> {isCompleted ? 'Review Solution' : 'Begin Assessment'}
                     </button>
                   </div>
                </div>
@@ -203,169 +157,112 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
   };
 
   return (
-    <div className="min-h-screen bg-[#050b14] text-white flex">
-      {/* Sidebar */}
-      <div className="w-20 md:w-64 bg-[#0a101f]/80 backdrop-blur-xl border-r border-slate-800 flex flex-col hidden md:flex sticky top-0 h-screen z-40">
-        <div className="p-6 border-b border-slate-800">
-           <div className="flex items-center gap-3">
-             <div className="bg-gradient-to-br from-cyan-600 to-blue-700 p-2 rounded-lg shadow-lg shadow-cyan-500/20">
-                <Terminal size={24} className="text-white" />
+    <div className="min-h-screen bg-[#020617] text-slate-200 flex student-theme-gradient">
+      {/* Sidebar - Royal Blue Academy Style */}
+      <aside className="w-20 md:w-64 bg-brand-navy-dark/90 backdrop-blur-2xl border-r border-slate-800/60 flex flex-col sticky top-0 h-screen z-40">
+        <div className="p-8 border-b border-slate-800/40">
+           <div className="flex items-center gap-4">
+             <div className="bg-brand-blue p-2.5 rounded-xl shadow-xl shadow-brand-blue/20">
+                <GraduationCap size={24} className="text-white" />
              </div>
-             <span className="font-bold text-lg hidden md:block text-slate-100 tracking-tight">TechNexus</span>
+             <span className="font-heading font-black text-xl hidden md:block text-white tracking-tighter">TECHNEXUS</span>
            </div>
         </div>
 
-        {/* Score Display in Sidebar */}
-        <div className="p-4 mx-4 mt-6 rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 text-center">
-            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Total Score</h4>
-            <div className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500">{currentScore}</div>
-            <div className="text-[10px] text-slate-500">Points Accumulated</div>
+        <div className="p-4 mx-6 mt-8 rounded-2xl bg-slate-900/50 border border-brand-gold/20 text-center hidden md:block group hover:border-brand-gold/40 transition-colors">
+            <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Academy Credentials</h4>
+            <div className="text-3xl font-black text-brand-gold gold-text-glow">{currentScore} <span className="text-[10px] font-bold text-brand-gold opacity-60">XP</span></div>
         </div>
-        
-        <nav className="flex-1 p-4 space-y-2">
-          <div 
-            onClick={() => { setActiveView('academy'); setAcademyState('list'); }}
-            className={`p-3 rounded-lg flex items-center gap-3 cursor-pointer transition-all duration-300 ${activeView === 'academy' ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 shadow-[0_0_15px_rgba(6,182,212,0.1)]' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}
-          >
-            <BookOpen size={20} />
-            <span className="hidden md:block font-medium">Academy</span>
-          </div>
-          <div 
-            onClick={() => setActiveView('community')}
-            className={`p-3 rounded-lg flex items-center gap-3 cursor-pointer transition-all duration-300 ${activeView === 'community' ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 shadow-[0_0_15px_rgba(6,182,212,0.1)]' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}
-          >
-            <MessageSquare size={20} />
-            <span className="hidden md:block font-medium">Community</span>
-          </div>
-          <div 
-            onClick={() => { setActiveView('courses'); setActiveCourse(null); }}
-            className={`p-3 rounded-lg flex items-center gap-3 cursor-pointer transition-all duration-300 ${activeView === 'courses' ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 shadow-[0_0_15px_rgba(6,182,212,0.1)]' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}
-          >
-            <Cpu size={20} />
-            <span className="hidden md:block font-medium">Extra Courses</span>
-          </div>
-          <div 
-            onClick={() => { setActiveView('labs'); setActiveCourse(null); }}
-            className={`p-3 rounded-lg flex items-center gap-3 cursor-pointer transition-all duration-300 ${activeView === 'labs' ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 shadow-[0_0_15px_rgba(6,182,212,0.1)]' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}
-          >
-            <Code size={20} />
-            <span className="hidden md:block font-medium">Playground</span>
-          </div>
+
+        <nav className="flex-1 p-6 space-y-3 mt-4">
+          <button onClick={() => { setActiveView('academy'); setAcademyState('list'); }} className={`w-full p-4 rounded-xl flex items-center gap-4 transition-all group ${activeView === 'academy' ? 'bg-brand-blue/10 text-brand-blue border border-brand-blue/20' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/50'}`}>
+            <BookOpen size={20} className={activeView === 'academy' ? 'text-brand-blue' : 'text-slate-600'} />
+            <span className="hidden md:block font-bold text-sm tracking-tight uppercase tracking-widest">Academy</span>
+          </button>
+          <button onClick={() => setActiveView('community')} className={`w-full p-4 rounded-xl flex items-center gap-4 transition-all group ${activeView === 'community' ? 'bg-brand-blue/10 text-brand-blue border border-brand-blue/20' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/50'}`}>
+            <MessageSquare size={20} className={activeView === 'community' ? 'text-brand-blue' : 'text-slate-600'} />
+            <span className="hidden md:block font-bold text-sm tracking-tight uppercase tracking-widest">Community</span>
+          </button>
+          <button onClick={() => setActiveView('labs')} className={`w-full p-4 rounded-xl flex items-center gap-4 transition-all group ${activeView === 'labs' ? 'bg-brand-blue/10 text-brand-blue border border-brand-blue/20' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/50'}`}>
+            <Code size={20} className={activeView === 'labs' ? 'text-brand-blue' : 'text-slate-600'} />
+            <span className="hidden md:block font-bold text-sm tracking-tight uppercase tracking-widest">Labs</span>
+          </button>
         </nav>
 
-        <div className="p-4 border-t border-slate-800">
-           <button 
-             onClick={onLogout}
-             className="w-full p-3 rounded-lg bg-slate-800/50 border border-slate-700 text-slate-300 hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400 transition-all flex items-center gap-3 justify-center md:justify-start group"
-           >
-             <LogOut size={20} className="group-hover:-translate-x-1 transition-transform" />
-             <span className="hidden md:block">Sign Out</span>
+        <div className="p-6 border-t border-slate-800/40">
+           <button onClick={onLogout} className="w-full p-4 rounded-xl text-slate-600 hover:bg-brand-orange/10 hover:text-brand-orange transition-all flex items-center gap-4 justify-center md:justify-start font-bold uppercase text-[10px] tracking-widest">
+             <LogOut size={18} />
+             <span className="hidden md:block">Terminate Session</span>
            </button>
         </div>
-      </div>
+      </aside>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col max-w-full bg-[url('https://grainy-gradients.vercel.app/noise.svg')] bg-opacity-20">
-        <header className="h-16 border-b border-slate-800 bg-[#0a101f]/80 backdrop-blur-xl sticky top-0 z-30 flex items-center justify-between px-6 shadow-sm">
-          <h2 className="text-lg font-bold text-slate-200">
-             Welcome, {user.name}
-          </h2>
+      {/* Main Experience */}
+      <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
+        <header className="h-20 border-b border-slate-800/40 bg-[#020617]/40 backdrop-blur-3xl sticky top-0 z-30 flex items-center justify-between px-10">
           <div className="flex items-center gap-4">
-             <div className="md:hidden flex items-center gap-2 bg-slate-800 px-3 py-1 rounded-full">
-                <Trophy size={14} className="text-yellow-500" />
-                <span className="font-bold text-sm">{currentScore}</span>
+             <div className="h-3 w-3 rounded-full bg-brand-blue animate-pulse"></div>
+             <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Terminal <span className="text-slate-700">/</span> {activeView}</h2>
+          </div>
+          
+          {/* Professional Header Profile */}
+          <div className="flex items-center gap-6">
+             <div className="hidden sm:flex flex-col items-end">
+                <span className="text-sm font-bold text-white leading-tight">{currentUser.name}</span>
+                <span className="text-[10px] text-brand-gold font-bold uppercase tracking-widest opacity-80">{currentUser.plan || 'Standard Entry'}</span>
              </div>
-             <button onClick={onLogout} className="md:hidden p-2 text-slate-400">
-               <LogOut size={20} />
+             <button 
+                onClick={() => { setIsProfileModalOpen(true); setEditName(currentUser.name); setEditEmail(currentUser.email); }}
+                className="w-12 h-12 rounded-2xl bg-brand-navy-dark border border-brand-gold/30 flex items-center justify-center text-brand-gold hover:border-brand-gold hover:scale-105 transition-all shadow-xl shadow-brand-gold/5 overflow-hidden"
+             >
+                <UserIcon size={24} />
              </button>
           </div>
         </header>
 
-        <main className="p-6 overflow-y-auto flex-1">
+        <main className="p-10 flex-1 overflow-y-auto custom-scrollbar">
           {activeView === 'academy' && renderAcademy()}
-          {activeView === 'community' && <CommunityChat currentUser={user} />}
-          {activeView === 'labs' && <CodeLab currentUser={user} />}
-          {activeView === 'courses' && (
-             <div className="text-center py-20">
-               <Cpu size={48} className="mx-auto text-slate-600 mb-4"/>
-               <h3 className="text-2xl font-bold text-slate-400">External Courses</h3>
-               <p className="text-slate-500">Video lectures and reading materials (Placeholder).</p>
-             </div>
-          )}
+          {activeView === 'community' && <CommunityChat currentUser={currentUser} />}
+          {activeView === 'labs' && <CodeLab currentUser={currentUser} />}
         </main>
-      </div>
 
-      {/* Floating Chat Button */}
-      {activeView !== 'community' && (
-        <div className="fixed bottom-6 right-6 z-50">
-          {!isChatOpen && (
-            <button 
-              onClick={() => setIsChatOpen(true)}
-              className="w-14 h-14 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 rounded-full shadow-[0_0_20px_rgba(124,58,237,0.4)] flex items-center justify-center transition-all hover:scale-110 active:scale-95 animate-float"
-            >
-              <MessageSquare className="text-white" fill="currentColor" />
-            </button>
-          )}
-
-          {isChatOpen && (
-            <div className="w-80 md:w-96 h-[500px] bg-[#0f172a] border border-slate-700 rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-slide-up origin-bottom-right ring-1 ring-slate-700">
-              <div className="p-4 bg-gradient-to-r from-violet-900 to-indigo-900 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Sparkles size={18} className="text-yellow-300" />
-                  <h3 className="font-bold text-white">AI Assistant</h3>
+        {/* Profile Management Drawer/Modal */}
+        {isProfileModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-brand-night/90 backdrop-blur-xl animate-fade-in">
+             <div className="bg-brand-navy-dark border border-brand-gold/20 w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl animate-scale-up">
+                <div className="p-8 border-b border-slate-800/60 flex items-center justify-between bg-brand-blue/5">
+                   <h3 className="text-2xl font-heading font-black text-white flex items-center gap-3"><UserIcon size={24} className="text-brand-gold" /> Academic Registry</h3>
+                   <button onClick={() => setIsProfileModalOpen(false)} className="p-2 text-slate-500 hover:text-white transition-colors"><X size={28} /></button>
                 </div>
-                <button onClick={() => setIsChatOpen(false)} className="text-violet-200 hover:text-white transition-colors">
-                  <X size={18} />
-                </button>
-              </div>
-              
-              <div className="flex-1 p-4 overflow-y-auto bg-[#050b14] scrollbar-hide space-y-4">
-                {messages.map((msg, idx) => (
-                  <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[85%] p-3 rounded-2xl text-sm leading-relaxed ${
-                      msg.role === 'user' 
-                        ? 'bg-violet-600 text-white rounded-br-none shadow-md' 
-                        : 'bg-slate-800 text-slate-200 rounded-bl-none border border-slate-700 shadow-sm'
-                    }`}>
-                      {msg.text}
-                    </div>
-                  </div>
-                ))}
-                {isLoading && (
-                   <div className="flex justify-start">
-                     <div className="bg-slate-800 p-3 rounded-2xl rounded-bl-none border border-slate-700 flex gap-1">
-                       <span className="w-2 h-2 bg-slate-500 rounded-full animate-bounce"></span>
-                       <span className="w-2 h-2 bg-slate-500 rounded-full animate-bounce delay-75"></span>
-                       <span className="w-2 h-2 bg-slate-500 rounded-full animate-bounce delay-150"></span>
-                     </div>
+                
+                <form onSubmit={handleUpdateProfile} className="p-10 space-y-8">
+                   <div className="space-y-6">
+                      <div className="space-y-3">
+                         <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest ml-1">Full Legal Name</label>
+                         <div className="relative">
+                            <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)} className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl px-5 py-4 text-white focus:border-brand-blue outline-none transition-all font-medium" required />
+                            <div className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-700"><CheckCircle size={16}/></div>
+                         </div>
+                      </div>
+                      <div className="space-y-3">
+                         <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest ml-1">Verification Email</label>
+                         <div className="relative">
+                            <input type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl px-5 py-4 text-white focus:border-brand-blue outline-none transition-all font-medium" required />
+                            <div className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-700"><Mail size={16}/></div>
+                         </div>
+                      </div>
                    </div>
-                )}
-                <div ref={messagesEndRef} />
-              </div>
-
-              <div className="p-4 bg-[#0f172a] border-t border-slate-800">
-                 <div className="flex gap-2">
-                   <input 
-                     type="text"
-                     value={inputMessage}
-                     onChange={(e) => setInputMessage(e.target.value)}
-                     onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                     placeholder="Ask about code..."
-                     className="flex-1 bg-[#1e293b] border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-violet-500 transition-colors"
-                   />
-                   <button 
-                     onClick={handleSendMessage}
-                     disabled={isLoading || !inputMessage.trim()}
-                     className="p-2 bg-violet-600 rounded-lg text-white hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                   >
-                     <Send size={18} />
-                   </button>
-                 </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+                   <div className="flex gap-4 pt-4">
+                      <button type="button" onClick={() => setIsProfileModalOpen(false)} className="flex-1 py-4 bg-slate-800/50 text-slate-400 rounded-2xl font-bold hover:bg-slate-800 transition-all">Discard</button>
+                      <button type="submit" disabled={saveStatus === 'saving'} className={`flex-1 py-4 rounded-2xl font-black text-xs uppercase tracking-widest text-white shadow-xl transition-all ${saveStatus === 'success' ? 'bg-brand-green' : 'btn-orange'}`}>
+                        {saveStatus === 'saving' ? 'Verifying...' : saveStatus === 'success' ? 'Updated' : 'Save Changes'}
+                      </button>
+                   </div>
+                </form>
+             </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

@@ -6,7 +6,6 @@ export interface User {
   name: string;
   role: Role;
   email: string;
-  password?: string; // Storing password for mock demo purposes
   isPaid?: boolean;
   plan?: 'STUDENT' | 'PROFESSIONAL';
   paymentStatus?: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED' | 'NONE';

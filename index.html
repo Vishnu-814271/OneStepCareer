@@ -4,12 +4,11 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>TechNexus Academy</title>
+    <title>TechNexus Academy | Professional Training</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Premium Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;700&family=Outfit:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
     
     <script>
       tailwind.config = {
@@ -21,18 +20,14 @@
               mono: ['JetBrains Mono', 'monospace'],
             },
             colors: {
-              cyber: {
-                50: '#f0fdfa',
-                100: '#ccfbf1',
-                200: '#99f6e4',
-                300: '#5eead4',
-                400: '#2dd4bf',
-                500: '#14b8a6',
-                600: '#0d9488',
-                700: '#0f766e',
-                800: '#115e59',
-                900: '#134e4a',
-                950: '#042f2e',
+              brand: {
+                orange: '#F97316', 
+                blue: '#2563EB',   
+                gold: '#FACC15',   
+                green: '#10B981',  
+                'navy-dark': '#0f172a',
+                'forest-dark': '#064e3b',
+                'night': '#020617'
               }
             }
           }
@@ -40,62 +35,44 @@
       }
     </script>
     <style>
-      /* Smooth scrolling */
-      html {
-        scroll-behavior: smooth;
-      }
+      html { scroll-behavior: smooth; }
+      body { background-color: #020617; }
+      ::-webkit-scrollbar { width: 6px; height: 6px; }
+      ::-webkit-scrollbar-track { background: #020617; }
+      ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+      ::-webkit-scrollbar-thumb:hover { background: #334155; }
 
-      /* Custom Scrollbar */
-      ::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
-      }
-      ::-webkit-scrollbar-track {
-        background: #020617; 
-      }
-      ::-webkit-scrollbar-thumb {
-        background: #1e293b; 
-        border-radius: 4px;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background: #334155; 
-      }
-
-      /* Utility Classes */
-      .glass-panel {
-        background: rgba(15, 23, 42, 0.6);
+      .glass-card {
+        background: rgba(15, 23, 42, 0.4);
         backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.05);
       }
       
-      .text-glow {
-        text-shadow: 0 0 20px rgba(45, 212, 191, 0.5);
+      .student-theme-gradient {
+        background: radial-gradient(circle at top right, rgba(37, 99, 235, 0.1), transparent 40%),
+                    radial-gradient(circle at bottom left, rgba(250, 204, 21, 0.05), transparent 40%);
       }
 
-      /* Animations */
-      @keyframes float {
-        0%, 100% { transform: translateY(0px); }
-        50% { transform: translateY(-10px); }
-      }
-      .animate-float {
-        animation: float 6s ease-in-out infinite;
+      .admin-theme-gradient {
+        background: radial-gradient(circle at top right, rgba(16, 185, 129, 0.1), transparent 40%),
+                    radial-gradient(circle at bottom left, rgba(250, 204, 21, 0.05), transparent 40%);
       }
 
-      @keyframes grid-move {
-        0% { transform: translateY(0); }
-        100% { transform: translateY(40px); }
+      .btn-orange {
+        background: linear-gradient(135deg, #F97316 0%, #EA580C 100%);
+        box-shadow: 0 4px 15px rgba(249, 115, 22, 0.2);
+        transition: all 0.3s ease;
       }
-      .animate-grid {
-        animation: grid-move 3s linear infinite;
+      .btn-orange:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(249, 115, 22, 0.3);
       }
 
-      /* Background Grid Pattern */
-      .bg-grid-pattern {
-        background-size: 40px 40px;
-        background-image: linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-                          linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-      }
+      .gold-border { border-color: rgba(250, 204, 21, 0.3); }
+      .gold-text { color: #FACC15; }
+
+      .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+      .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
     </style>
   <script type="importmap">
 {
@@ -109,7 +86,7 @@
 }
 </script>
 </head>
-  <body class="bg-[#020617] text-slate-200 antialiased overflow-x-hidden selection:bg-cyan-500/30 selection:text-cyan-200">
+  <body class="text-slate-200 antialiased font-sans">
     <div id="root"></div>
   </body>
 </html>
