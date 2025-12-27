@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -21,13 +22,16 @@
             },
             colors: {
               brand: {
-                orange: '#F97316', 
-                blue: '#2563EB',   
-                gold: '#FACC15',   
-                green: '#10B981',  
-                'navy-dark': '#0f172a',
-                'forest-dark': '#064e3b',
-                'night': '#020617'
+                bg: '#f1f1f2',
+                cyan: '#00bbd6',
+                blue: '#237194',
+                orange: '#faa32b',
+                // Compatibility mapping for existing components
+                'night': '#f1f1f2',
+                'navy-dark': '#237194',
+                'forest-dark': '#1a5570',
+                'gold': '#faa32b',
+                'green': '#00bbd6'
               }
             }
           }
@@ -36,43 +40,47 @@
     </script>
     <style>
       html { scroll-behavior: smooth; }
-      body { background-color: #020617; }
+      body { background-color: #f1f1f2; color: #1e293b; }
       ::-webkit-scrollbar { width: 6px; height: 6px; }
-      ::-webkit-scrollbar-track { background: #020617; }
-      ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
-      ::-webkit-scrollbar-thumb:hover { background: #334155; }
+      ::-webkit-scrollbar-track { background: #f1f1f2; }
+      ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+      ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
       .glass-card {
-        background: rgba(15, 23, 42, 0.4);
+        background: rgba(255, 255, 255, 0.7);
         backdrop-filter: blur(12px);
-        border: 1px solid rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(35, 113, 148, 0.1);
+        box-shadow: 0 10px 30px -10px rgba(0,0,0,0.05);
       }
       
       .student-theme-gradient {
-        background: radial-gradient(circle at top right, rgba(37, 99, 235, 0.1), transparent 40%),
-                    radial-gradient(circle at bottom left, rgba(250, 204, 21, 0.05), transparent 40%);
+        background: radial-gradient(circle at top right, rgba(0, 187, 214, 0.08), transparent 40%),
+                    radial-gradient(circle at bottom left, rgba(250, 163, 43, 0.05), transparent 40%);
       }
 
       .admin-theme-gradient {
-        background: radial-gradient(circle at top right, rgba(16, 185, 129, 0.1), transparent 40%),
-                    radial-gradient(circle at bottom left, rgba(250, 204, 21, 0.05), transparent 40%);
+        background: radial-gradient(circle at top right, rgba(35, 113, 148, 0.12), transparent 40%),
+                    radial-gradient(circle at bottom left, rgba(250, 163, 43, 0.05), transparent 40%);
       }
 
       .btn-orange {
-        background: linear-gradient(135deg, #F97316 0%, #EA580C 100%);
-        box-shadow: 0 4px 15px rgba(249, 115, 22, 0.2);
+        background: linear-gradient(135deg, #faa32b 0%, #e08a1d 100%);
+        box-shadow: 0 4px 15px rgba(250, 163, 43, 0.2);
         transition: all 0.3s ease;
       }
       .btn-orange:hover {
         transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(249, 115, 22, 0.3);
+        box-shadow: 0 6px 20px rgba(250, 163, 43, 0.3);
       }
 
-      .gold-border { border-color: rgba(250, 204, 21, 0.3); }
-      .gold-text { color: #FACC15; }
-
       .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-      .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+      .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(35, 113, 148, 0.2); border-radius: 10px; }
+      
+      .bg-grid-pattern {
+        background-image: radial-gradient(#237194 0.5px, transparent 0.5px);
+        background-size: 24px 24px;
+        opacity: 0.05;
+      }
     </style>
   <script type="importmap">
 {
@@ -86,7 +94,7 @@
 }
 </script>
 </head>
-  <body class="text-slate-200 antialiased font-sans">
+  <body class="text-slate-800 antialiased font-sans">
     <div id="root"></div>
   </body>
 </html>

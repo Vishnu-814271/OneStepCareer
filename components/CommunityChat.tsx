@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { User, CommunityMessage } from '../types';
 import { dataService } from '../services/dataService';
@@ -33,35 +34,35 @@ const CommunityChat: React.FC<CommunityChatProps> = ({ currentUser }) => {
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#0a101f] rounded-2xl border border-slate-800 overflow-hidden shadow-2xl">
-      <div className={`p-4 border-b border-slate-800 flex items-center justify-between ${currentUser.role === 'ADMIN' ? 'bg-brand-deep-green/20' : 'bg-brand-deep-blue/20'}`}>
-         <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${currentUser.role === 'ADMIN' ? 'bg-brand-green/20 text-brand-green' : 'bg-brand-blue/20 text-brand-blue'}`}>
-               <UserIcon size={20} />
+    <div className="flex flex-col h-full bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-xl">
+      <div className={`p-6 border-b border-slate-100 flex items-center justify-between ${currentUser.role === 'ADMIN' ? 'bg-brand-blue' : 'bg-brand-cyan'} text-white`}>
+         <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center">
+               <UserIcon size={24} />
             </div>
             <div>
-               <h3 className="font-bold text-white text-sm">Global Comm-Link</h3>
-               <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">End-to-end encrypted</p>
+               <h3 className="font-heading font-black text-base uppercase tracking-tight">Nexus Network Link</h3>
+               <p className="text-[10px] font-bold text-white/70 uppercase tracking-widest">Operator Comms Encrypted</p>
             </div>
          </div>
-         <button onClick={loadMessages} className="p-2 text-slate-500 hover:text-brand-gold"><RefreshCw size={18} /></button>
+         <button onClick={loadMessages} title="Refresh Stream" className="p-2 text-white/50 hover:text-white transition-colors"><RefreshCw size={20} /></button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-grid-pattern opacity-90">
+      <div className="flex-1 overflow-y-auto p-8 space-y-6 bg-grid-pattern">
          {messages.map((msg) => {
             const isMe = msg.userId === currentUser.id;
             const isAdmin = msg.userRole === 'ADMIN';
             return (
                <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                   <div className={`flex flex-col max-w-[80%] ${isMe ? 'items-end' : 'items-start'}`}>
-                     <div className="flex items-center gap-2 mb-1 px-1">
-                        <span className={`text-[10px] font-black tracking-widest uppercase ${isAdmin ? 'text-brand-gold' : 'text-slate-500'}`}>{msg.userName}</span>
-                        {isAdmin && <Shield size={10} className="text-brand-gold" />}
+                     <div className="flex items-center gap-2 mb-2 px-1">
+                        <span className={`text-[10px] font-black tracking-widest uppercase ${isAdmin ? 'text-brand-orange' : 'text-slate-400'}`}>{msg.userName}</span>
+                        {isAdmin && <Shield size={10} className="text-brand-orange" />}
                      </div>
-                     <div className={`px-4 py-2.5 rounded-2xl text-xs leading-relaxed border ${
-                        isMe ? 'bg-brand-blue border-brand-blue/30 text-white rounded-tr-none' : 
-                        isAdmin ? 'bg-brand-deep-green border-brand-green/30 text-brand-gold rounded-tl-none' : 
-                        'bg-slate-800 border-slate-700 text-slate-300 rounded-tl-none'
+                     <div className={`px-5 py-3 rounded-2xl text-sm leading-relaxed border shadow-sm ${
+                        isMe ? 'bg-brand-blue border-brand-blue text-white rounded-tr-none' : 
+                        isAdmin ? 'bg-orange-50 border-brand-orange/30 text-brand-orange rounded-tl-none font-medium' : 
+                        'bg-slate-50 border-slate-200 text-slate-700 rounded-tl-none'
                      }`}>
                         {msg.text}
                      </div>
@@ -72,10 +73,10 @@ const CommunityChat: React.FC<CommunityChatProps> = ({ currentUser }) => {
          <div ref={messagesEndRef} />
       </div>
 
-      <form onSubmit={handleSend} className="p-4 bg-slate-900/80 border-t border-slate-800">
-         <div className="flex gap-2">
-            <input type="text" value={newMessage} onChange={(e) => setNewMessage(e.target.value)} placeholder="Enter message..." className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-xs text-white focus:border-brand-gold outline-none" />
-            <button type="submit" disabled={!newMessage.trim()} className="px-5 bg-brand-orange hover:bg-orange-600 text-white rounded-xl font-bold transition-all disabled:opacity-50"><Send size={16} /></button>
+      <form onSubmit={handleSend} className="p-6 bg-slate-50 border-t border-slate-100">
+         <div className="flex gap-4">
+            <input type="text" value={newMessage} onChange={(e) => setNewMessage(e.target.value)} placeholder="Type signal for transmission..." className="flex-1 bg-white border border-slate-200 rounded-2xl px-6 py-4 text-sm text-slate-800 focus:border-brand-cyan outline-none shadow-sm transition-all" />
+            <button type="submit" disabled={!newMessage.trim()} className="px-8 bg-brand-blue hover:bg-brand-cyan text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-lg shadow-brand-blue/20 disabled:opacity-50 flex items-center gap-2"><Send size={16} /> Transmit</button>
          </div>
       </form>
     </div>

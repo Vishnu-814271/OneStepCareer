@@ -1,430 +1,319 @@
-import React, { useState, useEffect } from 'react';
-import { Play, RotateCcw, CheckCircle, Terminal, Code2, Layers, Folder, ChevronRight, FileCode, ArrowLeft, Send, PlayCircle, Keyboard, Cpu, Layout, Settings } from 'lucide-react';
+
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Play, CheckCircle, Terminal, FileCode, Zap, Activity, Clock, ShieldAlert, Lock, AlertTriangle, Timer, Layers, XCircle, Search, Cpu, ChevronRight, SquareTerminal } from 'lucide-react';
 import { runCodeSimulation, validateSolution } from '../services/geminiService';
 import { dataService } from '../services/dataService';
-import { Problem, Difficulty, AssessmentSummary, User } from '../types';
+import { Problem, AssessmentSummary, User, TestResult, GlobalSettings, ProblemAnalysis } from '../types';
 import AnalyticsView from './AnalyticsView';
 
 interface CodeLabProps {
-  initialProblem?: Problem;
+  problemSet?: Problem[];
   onExit?: () => void;
-  isAssessmentMode?: boolean;
-  currentUser?: User; // Needed to update scores
+  currentUser?: User;
 }
 
-const CodeLab: React.FC<CodeLabProps> = ({ initialProblem, onExit, isAssessmentMode = false, currentUser }) => {
-  const [viewState, setViewState] = useState<'languages' | 'levels' | 'problems' | 'editor' | 'analysis'>('languages');
-  const [selectedLanguage, setSelectedLanguage] = useState<string>('');
-  const [selectedLevel, setSelectedLevel] = useState<Difficulty>('L0');
-  const [activeProblem, setActiveProblem] = useState<Problem | null>(null);
+const CodeLab: React.FC<CodeLabProps> = ({ problemSet = [], onExit, currentUser }) => {
+  const examProblems = problemSet.length > 0 ? problemSet : dataService.getProblems().slice(0, 10);
   
-  const [code, setCode] = useState('');
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [solutions, setSolutions] = useState<{ [id: string]: string }>(
+    Object.fromEntries(examProblems.map(p => [p.id, p.starterCode]))
+  );
+  
+  const activeProblem = examProblems[currentIndex];
   const [output, setOutput] = useState('');
   const [isRunning, setIsRunning] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [customInput, setCustomInput] = useState(''); 
-  const [activeTab, setActiveTab] = useState<'output' | 'input'>('output');
-  
+  const [activeTab, setActiveTab] = useState<'testcases' | 'stdout'>('stdout');
+  const [viewState, setViewState] = useState<'editor' | 'analysis'>('editor');
   const [assessmentSummary, setAssessmentSummary] = useState<AssessmentSummary | null>(null);
-  const [languages, setLanguages] = useState<string[]>([]);
-  const [problems, setProblems] = useState<Problem[]>([]);
 
-  // Initialize
+  const [settings] = useState<GlobalSettings>(dataService.getSettings());
+  const [timeLeft, setTimeLeft] = useState(settings.standardTimeLimit);
+  const [warnings, setWarnings] = useState(0);
+  const [showWarningModal, setShowWarningModal] = useState(false);
+  const timerRef = useRef<any>(null);
+
+  const handleCodeChange = (newCode: string) => {
+    setSolutions(prev => ({ ...prev, [activeProblem.id]: newCode }));
+  };
+
+  const finalizeExam = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    
+    try {
+      const evaluationPromises = examProblems.map(async (prob) => {
+        const { results, referenceCode } = await validateSolution(solutions[prob.id], prob.language, prob.testCases);
+        const passedCount = results.filter(r => r.passed).length;
+        const totalCount = results.length;
+        
+        // STRICT GRADING: All test cases must pass for full points
+        const isPerfect = passedCount === totalCount && totalCount > 0;
+        
+        return {
+          problemId: prob.id,
+          title: prob.title,
+          score: isPerfect ? (prob.points || 0) : 0,
+          isPerfect,
+          testResults: results,
+          referenceCode: referenceCode
+        } as ProblemAnalysis;
+      });
+
+      const problemAnalyses = await Promise.all(evaluationPromises);
+      
+      const totalScore = problemAnalyses.reduce((sum, res) => sum + res.score, 0);
+      const totalPassedTests = problemAnalyses.reduce((sum, res) => sum + res.testResults.filter(r => r.passed).length, 0);
+      const totalTestsCount = problemAnalyses.reduce((sum, res) => sum + res.testResults.length, 0);
+      const allResults: TestResult[] = problemAnalyses.flatMap(res => res.testResults);
+
+      if (currentUser) {
+        dataService.updateUserScore(currentUser.id, `EXAM_${Date.now()}`, totalScore);
+      }
+
+      setAssessmentSummary({
+        problemId: "FINAL_ASSESSMENT",
+        score: totalScore,
+        maxPoints: examProblems.reduce((sum, p) => sum + (p.points || 0), 0),
+        totalTests: totalTestsCount,
+        passedTests: totalPassedTests,
+        testResults: allResults,
+        problemAnalyses: problemAnalyses,
+        timeTaken: `${Math.floor((settings.standardTimeLimit - timeLeft) / 60)}m`,
+        timestamp: new Date(),
+        warningsCount: warnings
+      });
+
+      setViewState('analysis');
+    } catch (error) {
+      console.error("Submission Halted:", error);
+      alert("Terminal Sync Error. Awaiting re-establishment of secure link...");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCommitClick = () => {
+    if (window.confirm('Ready for FINAL COMMITMENT? All 10 Logic Units will be analyzed and results finalized.')) {
+      finalizeExam();
+    }
+  };
+
+  const handleTerminateClick = () => {
+    if (window.confirm('TERMINATE SESSION? This will end the exam now and analyze your progress so far. Partial work will be scored.')) {
+      finalizeExam();
+    }
+  };
+
   useEffect(() => {
-    setLanguages(dataService.getLanguages());
-    setProblems(dataService.getProblems());
+    if (viewState === 'analysis') return;
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        setWarnings(prev => {
+          const next = prev + 1;
+          if (next >= settings.tabSwitchLimit) finalizeExam();
+          else setShowWarningModal(true);
+          return next;
+        });
+      }
+    };
+    window.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => window.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [viewState, settings.tabSwitchLimit]);
 
-    if (initialProblem) {
-      setActiveProblem(initialProblem);
-      setCode(initialProblem.starterCode);
-      setViewState('editor');
-      setSelectedLanguage(initialProblem.language);
-      setSelectedLevel(initialProblem.difficulty);
+  useEffect(() => {
+    if (viewState === 'editor') {
+      timerRef.current = setInterval(() => {
+        setTimeLeft(prev => {
+          if (prev <= 1) {
+            clearInterval(timerRef.current);
+            finalizeExam();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
     }
-  }, [initialProblem]);
+    return () => clearInterval(timerRef.current);
+  }, [viewState]);
 
-  // Run with Custom Input
-  const handleRun = async () => {
-    if (!activeProblem) return;
+  const runCurrentCode = async () => {
+    if (isRunning) return;
     setIsRunning(true);
-    setActiveTab('output');
-    setOutput('Compiling and executing...');
-    
-    // Auto-Input Logic: If user didn't provide custom input, grab the first test case
-    let inputToUse = customInput;
-    if (!inputToUse && activeProblem.testCases && activeProblem.testCases.length > 0) {
-       inputToUse = activeProblem.testCases[0].input;
-       // We don't overwrite customInput state so the box remains clean, but we show a log msg
-       setOutput(`(Using Input from Test Case 1: ${inputToUse})\n...\n`);
-    }
-
-    const result = await runCodeSimulation(code, activeProblem.language, inputToUse);
-    
-    // Append result to the output
-    setOutput((prev) => (prev === 'Compiling and executing...' ? '' : prev) + result);
+    setActiveTab('stdout');
+    setOutput('>>> INITIALIZING SECURE RUNTIME BUFFER...\n');
+    const result = await runCodeSimulation(solutions[activeProblem.id], activeProblem.language, activeProblem.testCases[0]?.input || "");
+    setOutput(prev => prev + '>>> OUTPUT STREAM:\n' + result + '\n\n>>> EXECUTION COMPLETE.');
     setIsRunning(false);
   };
 
-  const handleSubmit = async () => {
-    if (!activeProblem) return;
-    setIsSubmitting(true);
-    setActiveTab('output');
-    setOutput('Validating solution against all test cases...');
-
-    const startTime = Date.now();
-    const results = await validateSolution(code, activeProblem.language, activeProblem.testCases || []);
-    const endTime = Date.now();
-
-    // STRICT SCORING LOGIC: If ANY test fails, score is 0.
-    const passedCount = results.filter(r => r.passed).length;
-    const totalCount = results.length;
-    const allPassed = passedCount === totalCount && totalCount > 0;
-    
-    // Calculate points
-    const maxPoints = activeProblem.points || 0;
-    const awardedPoints = allPassed ? maxPoints : 0;
-    
-    // Format duration
-    const seconds = Math.floor((endTime - startTime) / 1000);
-    const timeTaken = `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
-
-    // Persist Score if User is present and passed
-    if (allPassed && currentUser) {
-      dataService.updateUserScore(currentUser.id, activeProblem.id, awardedPoints);
-    }
-
-    setAssessmentSummary({
-      problemId: activeProblem.id,
-      score: awardedPoints,
-      maxPoints: maxPoints,
-      totalTests: totalCount,
-      passedTests: passedCount,
-      testResults: results,
-      timeTaken,
-      timestamp: new Date()
-    });
-
-    setIsSubmitting(false);
-    setViewState('analysis');
+  const formatTime = (seconds: number) => {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    return `${h > 0 ? h + ':' : ''}${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
-
-  const handleRetry = () => {
-    setViewState('editor');
-    setOutput('// Console cleared. Ready for next run.');
-  };
-
-  const Breadcrumbs = () => (
-    <div className="flex items-center gap-2 text-xs font-medium text-slate-400 mb-6 p-2 rounded-lg w-fit">
-      <button 
-        onClick={() => {
-           if(onExit) onExit();
-           else setViewState('languages');
-        }} 
-        className="hover:text-white transition-colors"
-      >
-        {isAssessmentMode ? 'ACADEMY' : 'LABS'}
-      </button>
-      
-      {!initialProblem && viewState !== 'languages' && (
-        <>
-          <ChevronRight size={12} className="opacity-50" />
-          <button onClick={() => setViewState('levels')} className={`hover:text-white transition-colors uppercase ${viewState === 'levels' ? 'text-cyan-400' : ''}`}>{selectedLanguage}</button>
-        </>
-      )}
-      
-      {activeProblem && (
-        <>
-           <ChevronRight size={12} className="opacity-50" />
-           <span className="text-cyan-400 uppercase truncate max-w-[200px]">{activeProblem.title}</span>
-        </>
-      )}
-    </div>
-  );
-
-  // --- RENDER STATES ---
 
   if (viewState === 'analysis' && assessmentSummary) {
-    return (
-      <div className="h-full flex flex-col bg-[#0b1120]">
-         {isAssessmentMode && <Breadcrumbs />}
-         <AnalyticsView 
-            summary={assessmentSummary} 
-            onRetry={handleRetry} 
-            onNext={() => {
-               if(onExit) onExit();
-               else setViewState('languages');
-            }} 
-         />
-      </div>
-    );
+    return <AnalyticsView summary={assessmentSummary} onRetry={() => onExit?.()} onNext={onExit} />;
   }
 
-  // Standard Lab Navigation 
-  if (viewState === 'languages' && !isAssessmentMode) {
-    return (
-      <div className="animate-fade-in p-6">
-        <h2 className="text-2xl font-bold mb-8 flex items-center gap-3 text-white tracking-tight">
-            <Layout className="text-cyan-500" /> 
-            Select Language Track
-        </h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          {languages.map(lang => (
-            <div 
-              key={lang}
-              onClick={() => { setSelectedLanguage(lang); setViewState('levels'); }}
-              className="group relative bg-[#1e293b]/50 border border-slate-700/50 hover:border-cyan-500/50 p-8 rounded-xl cursor-pointer transition-all duration-300 hover:bg-[#1e293b] hover:shadow-2xl hover:shadow-cyan-900/10"
-            >
-              <div className="w-14 h-14 rounded-lg bg-slate-800 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 border border-slate-700 group-hover:border-cyan-500/30">
-                 <Terminal size={28} className="text-slate-400 group-hover:text-cyan-400 transition-colors" />
-              </div>
-              <h3 className="text-xl font-bold text-white mb-2">{lang}</h3>
-              <p className="text-slate-500 text-xs font-mono">{problems.filter(p => p.language === lang).length} Problems Available</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  if (viewState === 'levels' && !isAssessmentMode) {
-     return (
-       <div className="animate-fade-in p-6">
-         <Breadcrumbs />
-         <h2 className="text-2xl font-bold mb-8 text-white tracking-tight">Select Difficulty</h2>
-         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-           {['L0', 'L1', 'L2'].map((level) => (
-             <div 
-               key={level}
-               onClick={() => { setSelectedLevel(level as Difficulty); setViewState('problems'); }}
-               className="group bg-[#1e293b]/50 border border-slate-700/50 hover:border-cyan-500/40 p-6 rounded-xl cursor-pointer transition-all hover:translate-x-1 hover:bg-[#1e293b]"
-             >
-                <div className="flex items-center justify-between mb-4">
-                   <span className={`text-4xl font-black ${
-                     level === 'L0' ? 'text-emerald-500/20 group-hover:text-emerald-400' :
-                     level === 'L1' ? 'text-blue-500/20 group-hover:text-blue-400' :
-                     'text-orange-500/20 group-hover:text-orange-400'
-                   } transition-colors`}>{level}</span>
-                   <ChevronRight className="text-slate-600 group-hover:text-white transition-colors" />
-                </div>
-                <h3 className="text-lg font-bold text-white mb-1">
-                  {level === 'L0' ? 'Beginner' :
-                   level === 'L1' ? 'Intermediate' :
-                   'Advanced'}
-                </h3>
-                <div className="flex items-center gap-2 text-xs font-mono text-slate-500">
-                  <span className={`w-2 h-2 rounded-full ${
-                     level === 'L0' ? 'bg-emerald-500' :
-                     level === 'L1' ? 'bg-blue-500' :
-                     'bg-orange-500'
-                  }`}></span>
-                  {level === 'L0' ? '8 Points' : level === 'L1' ? '9 Points' : '10 Points'}
-                </div>
-             </div>
-           ))}
-         </div>
-       </div>
-     );
-  }
-  
-  if (viewState === 'problems' && !isAssessmentMode) {
-    const filteredProblems = problems.filter(p => p.language === selectedLanguage && p.difficulty === selectedLevel);
-    return (
-      <div className="animate-fade-in p-6">
-        <Breadcrumbs />
-        <h2 className="text-2xl font-bold mb-8 text-white tracking-tight flex items-center gap-3">
-           <Folder className="text-slate-500" size={24}/>
-           {selectedLanguage} <span className="text-slate-600">/</span> {selectedLevel}
-        </h2>
-        {filteredProblems.length === 0 ? (
-          <div className="text-center py-20 bg-[#1e293b]/30 rounded-xl border border-dashed border-slate-800">
-            <Code2 size={48} className="mx-auto mb-4 text-slate-700" />
-            <p className="text-slate-500 text-sm">No problems found in this directory.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-3">
-             {filteredProblems.map((prob, idx) => (
-               <div 
-                 key={prob.id} 
-                 onClick={() => { setActiveProblem(prob); setCode(prob.starterCode); setOutput(''); setViewState('editor'); }}
-                 className="flex items-center justify-between p-4 bg-[#1e293b]/50 border border-slate-700/50 rounded-lg hover:border-cyan-500/40 cursor-pointer transition-all hover:bg-[#1e293b] group"
-               >
-                  <div className="flex items-center gap-4">
-                    <span className="font-mono text-slate-600 text-xs w-6 text-right">{(idx + 1).toString().padStart(2, '0')}</span>
-                    <div>
-                      <h4 className="text-sm font-bold text-slate-200 group-hover:text-cyan-400 transition-colors">{prob.title}</h4>
-                      <div className="flex gap-2 mt-1">
-                        <span className="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded border border-slate-700">{prob.module || 'General'}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                     <span className="text-xs text-slate-500 font-mono">{prob.points} pts</span>
-                     <ChevronRight size={16} className="text-slate-700 group-hover:text-cyan-500 transition-colors" />
-                  </div>
-               </div>
-             ))}
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  // EDITOR VIEW
   return (
-    <div className="h-full flex flex-col animate-fade-in bg-[#0b1120]">
-      <div className="px-6 pt-4">
-        <Breadcrumbs />
-      </div>
-      
-      <div className="flex-1 flex flex-col md:flex-row gap-0 md:gap-px bg-slate-800 overflow-hidden">
-        
-        {/* LEFT PANEL: Problem Description */}
-        <div className="w-full md:w-[350px] bg-[#0b1120] flex flex-col border-r border-slate-800 overflow-hidden">
-          <div className="p-6 overflow-y-auto flex-1 custom-scrollbar">
-            <h3 className="text-xl font-bold text-white mb-4 leading-tight">{activeProblem?.title}</h3>
-            
-            <div className="flex flex-wrap gap-2 mb-6">
-               <span className="px-2 py-1 bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 rounded text-[10px] font-bold uppercase tracking-wider">{activeProblem?.language}</span>
-               <span className="px-2 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded text-[10px] font-bold uppercase tracking-wider">{activeProblem?.difficulty}</span>
-               <span className="px-2 py-1 bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 rounded text-[10px] font-bold uppercase tracking-wider">{activeProblem?.points} Pts</span>
-            </div>
-            
-            <div className="prose prose-invert prose-sm max-w-none text-slate-400 mb-8">
-              <p>{activeProblem?.description}</p>
-            </div>
+    <div className="fixed inset-0 z-50 bg-[#f8fafc] flex flex-col animate-fade-in overflow-hidden">
+      {/* Integrated Header */}
+      <header className="h-16 bg-[#0f172a] flex items-center justify-between px-6 text-white shrink-0 border-b border-white/5 z-50">
+        <div className="flex items-center gap-4">
+          <div className="bg-brand-cyan/20 p-2 rounded-lg">
+            <Cpu size={20} className="text-brand-cyan" />
+          </div>
+          <div>
+            <h1 className="text-[11px] font-black uppercase tracking-[0.2em] text-white">Industrial Examination Hall</h1>
+            <p className="text-[9px] font-bold text-white/40 uppercase tracking-widest mt-0.5">Candidate: {currentUser?.name}</p>
+          </div>
+        </div>
 
-            <div className="bg-[#161f2e] rounded-lg border border-slate-800 overflow-hidden">
-               <div className="bg-[#1e293b] px-3 py-2 border-b border-slate-800 flex items-center gap-2">
-                 <Cpu size={14} className="text-slate-400" />
-                 <span className="text-xs font-bold text-slate-300 uppercase">Example Case</span>
-               </div>
-               {activeProblem?.testCases?.filter(tc => !tc.isHidden).slice(0, 1).map((tc, i) => (
-                 <div key={i} className="p-3 space-y-3">
-                    <div>
-                      <div className="text-[10px] text-slate-500 uppercase font-bold mb-1">Input</div>
-                      <code className="block bg-[#0b1120] p-2 rounded text-xs font-mono text-cyan-300">{tc.input || '(No Input)'}</code>
-                    </div>
-                    <div>
-                      <div className="text-[10px] text-slate-500 uppercase font-bold mb-1">Output</div>
-                      <code className="block bg-[#0b1120] p-2 rounded text-xs font-mono text-emerald-300">{tc.expectedOutput}</code>
-                    </div>
+        <div className="flex items-center gap-6">
+           <div className={`flex items-center gap-3 px-4 py-1.5 rounded-xl border ${timeLeft < 600 ? 'bg-red-500/20 border-red-500 animate-pulse' : 'bg-white/5 border-white/10'}`}>
+              <Timer size={14} className={timeLeft < 600 ? 'text-red-400' : 'text-brand-cyan'} />
+              <span className="font-mono font-black text-sm tracking-tighter">{formatTime(timeLeft)}</span>
+           </div>
+           
+           <div className="flex items-center gap-3">
+             <button onClick={handleTerminateClick} className="px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-red-400 transition-colors flex items-center gap-2">
+               <XCircle size={14} /> Abort Session
+             </button>
+             <button onClick={handleCommitClick} disabled={isSubmitting} className="px-6 py-2 bg-brand-orange hover:bg-orange-400 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-xl flex items-center gap-2 transition-all">
+               {isSubmitting ? <Activity size={14} className="animate-spin" /> : <Zap size={14} fill="currentColor" />} Commit Exam
+             </button>
+           </div>
+        </div>
+      </header>
+
+      <div className="flex-1 flex overflow-hidden">
+        {/* Left column: Problem definition */}
+        <aside className="w-[380px] border-r border-slate-200 bg-white flex flex-col shrink-0 overflow-y-auto custom-scrollbar">
+           <div className="p-8 space-y-10">
+              <section>
+                 <div className="flex items-center justify-between mb-4">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Logic Unit {currentIndex + 1}</span>
+                    <span className="px-2 py-0.5 bg-brand-blue/5 text-brand-blue rounded-md text-[9px] font-black uppercase tracking-widest">{activeProblem?.language}</span>
                  </div>
-               ))}
-            </div>
-          </div>
-          
-          <div className="p-4 border-t border-slate-800 bg-[#0f172a]">
-            <button 
-               onClick={() => {
-                  if(onExit) onExit();
-                  else setViewState('problems');
-               }}
-               className="w-full flex items-center justify-center gap-2 p-2.5 rounded-lg border border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-white transition-colors text-sm font-medium"
-            >
-               <ArrowLeft size={16} />
-               Back to List
-            </button>
-          </div>
-        </div>
+                 <h2 className="text-2xl font-heading font-black text-brand-blue uppercase tracking-tight mb-4 leading-tight">{activeProblem?.title}</h2>
+                 <div className="prose prose-slate prose-sm text-slate-600 font-medium leading-relaxed">
+                    {activeProblem?.description}
+                 </div>
+              </section>
 
-        {/* RIGHT PANEL: Editor & Terminal */}
-        <div className="flex-1 flex flex-col bg-[#0b1120] min-w-0">
-          
-          {/* Toolbar */}
-          <div className="h-12 bg-[#161f2e] border-b border-slate-800 flex items-center justify-between px-4 select-none">
-             <div className="flex items-center gap-2 text-slate-400 text-xs font-mono">
-                <FileCode size={14} className="text-cyan-500" />
-                <span>main.{activeProblem?.language.toLowerCase().substring(0,2)}</span>
-             </div>
+              <section className="space-y-4">
+                 <div className="flex items-center gap-2 text-[10px] font-black text-slate-300 uppercase tracking-widest border-b border-slate-100 pb-2">
+                    <Search size={12}/> Sample Verification
+                 </div>
+                 {activeProblem?.testCases.filter(tc => !tc.isHidden).map((tc, idx) => (
+                    <div key={idx} className="space-y-3">
+                       <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 font-mono">
+                          <pre className="text-xs text-slate-600 whitespace-pre-wrap">{tc.input}</pre>
+                       </div>
+                       <div className="bg-cyan-50/30 p-4 rounded-xl border border-brand-cyan/10 font-mono">
+                          <pre className="text-xs text-brand-cyan font-bold whitespace-pre-wrap">{tc.expectedOutput}</pre>
+                       </div>
+                    </div>
+                 ))}
+              </section>
+           </div>
+        </aside>
 
-             <div className="flex items-center gap-2">
-                <button 
-                   onClick={() => setCode(activeProblem?.starterCode || '')}
-                   className="p-1.5 text-slate-500 hover:text-white transition-colors rounded hover:bg-slate-700" 
-                   title="Reset Code"
-                >
-                   <RotateCcw size={14} />
-                </button>
-                <div className="h-4 w-px bg-slate-700 mx-2"></div>
-                <button 
-                   onClick={handleRun}
-                   disabled={isRunning || isSubmitting}
-                   className="flex items-center gap-2 px-3 py-1.5 bg-emerald-600/10 text-emerald-500 hover:bg-emerald-600 hover:text-white border border-emerald-600/20 rounded text-xs font-bold transition-all disabled:opacity-50"
-                >
-                   {isRunning ? <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin"/> : <PlayCircle size={14} />}
-                   RUN
-                </button>
-                <button 
-                   onClick={handleSubmit}
-                   disabled={isRunning || isSubmitting}
-                   className="flex items-center gap-2 px-3 py-1.5 bg-cyan-600 text-white hover:bg-cyan-500 rounded text-xs font-bold transition-all shadow-lg shadow-cyan-500/20 disabled:opacity-50"
-                >
-                   {isSubmitting ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"/> : <Send size={14} />}
-                   SUBMIT
-                </button>
-             </div>
-          </div>
+        {/* Right column: IDE + Fitted Console */}
+        <main className="flex-1 flex flex-col bg-[#0b1120] min-w-0">
+           <nav className="h-14 bg-white/5 border-b border-white/5 flex items-center justify-between px-6 shrink-0">
+              <div className="flex items-center gap-2 text-[10px] font-black text-white/30 uppercase tracking-widest">
+                 <Layers size={14}/> Grid Nav (1-10)
+              </div>
+              <div className="flex items-center gap-1.5">
+                 {examProblems.map((_, i) => (
+                    <button 
+                       key={i} 
+                       onClick={() => setCurrentIndex(i)}
+                       className={`w-8 h-8 rounded-lg flex items-center justify-center text-[11px] font-black transition-all ${
+                          currentIndex === i 
+                          ? 'bg-brand-cyan text-white shadow-xl shadow-cyan-500/20 scale-110' 
+                          : 'bg-white/5 text-white/30 hover:bg-white/10 hover:text-white'
+                       }`}
+                    >
+                       {i + 1}
+                    </button>
+                 ))}
+              </div>
+           </nav>
 
-          {/* Monaco-like Editor Area */}
-          <div className="flex-1 relative bg-[#0b1120] font-mono text-sm group">
-            <div className="absolute left-0 top-0 bottom-0 w-12 bg-[#0b1120] border-r border-slate-800 text-slate-600 text-right pr-3 pt-4 select-none text-xs leading-6">
-              {code.split('\n').map((_, i) => <div key={i}>{i + 1}</div>)}
-            </div>
-            <textarea
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              className="w-full h-full bg-transparent text-slate-300 p-4 pl-16 resize-none focus:outline-none leading-6 custom-scrollbar selection:bg-cyan-500/30"
-              spellCheck="false"
-              autoCapitalize="off"
-              autoComplete="off"
-              autoCorrect="off"
-            />
-          </div>
+           <div className="flex-1 relative overflow-hidden">
+              <div className="absolute top-0 left-0 bottom-0 w-12 bg-black/40 border-r border-white/5 flex flex-col items-end pr-3 pt-6 text-[10px] font-bold text-slate-700 select-none">
+                 {solutions[activeProblem.id].split('\n').map((_, i) => <div key={i} className="h-6 leading-6">{i + 1}</div>)}
+              </div>
+              <textarea 
+                value={solutions[activeProblem.id]} 
+                onChange={(e) => handleCodeChange(e.target.value)} 
+                className="w-full h-full bg-transparent text-cyan-50 p-6 pl-16 resize-none focus:outline-none leading-6 font-mono text-sm custom-scrollbar" 
+                spellCheck="false"
+                autoComplete="off"
+              />
+           </div>
 
-          {/* Terminal / Output Panel */}
-          <div className="h-1/3 min-h-[150px] bg-[#0f172a] border-t border-slate-800 flex flex-col">
-             {/* Terminal Tabs */}
-             <div className="flex border-b border-slate-800 bg-[#0b1120]">
-                <button 
-                   onClick={() => setActiveTab('output')}
-                   className={`px-4 py-2 text-xs font-bold flex items-center gap-2 border-r border-slate-800 transition-colors ${activeTab === 'output' ? 'bg-[#0f172a] text-white border-t-2 border-t-cyan-500' : 'text-slate-500 hover:text-slate-300'}`}
-                >
-                   <Terminal size={12} /> OUTPUT
-                </button>
-                <button 
-                   onClick={() => setActiveTab('input')}
-                   className={`px-4 py-2 text-xs font-bold flex items-center gap-2 border-r border-slate-800 transition-colors ${activeTab === 'input' ? 'bg-[#0f172a] text-white border-t-2 border-t-cyan-500' : 'text-slate-500 hover:text-slate-300'}`}
-                >
-                   <Keyboard size={12} /> CUSTOM INPUT
-                </button>
-             </div>
-
-             {/* Terminal Content */}
-             <div className="flex-1 p-4 overflow-auto font-mono text-xs custom-scrollbar">
-                {activeTab === 'input' ? (
-                   <textarea 
-                     className="w-full h-full bg-transparent text-slate-300 focus:outline-none resize-none placeholder:text-slate-700"
-                     placeholder="Enter input values here (e.g. for Python input() or Java Scanner). Place each value on a new line."
-                     value={customInput}
-                     onChange={(e) => setCustomInput(e.target.value)}
-                   />
-                ) : (
-                   output ? (
-                     <pre className="whitespace-pre-wrap text-emerald-400 font-medium leading-relaxed">{output}</pre>
-                   ) : (
-                     <div className="text-slate-600 flex flex-col gap-1 select-none">
-                        <span>TechNexus Console [Version 1.0.0]</span>
-                        <span>Ready to compile...</span>
-                        <br/>
-                        <span className="text-slate-700 italic">// Tip: Use 'Custom Input' tab to provide stdin values before clicking Run.</span>
-                     </div>
-                   )
-                )}
-             </div>
-          </div>
-
-        </div>
+           {/* Perfectly Fit Bottom Console */}
+           <section className="h-[220px] bg-white border-t border-slate-200 flex flex-col shrink-0">
+              <div className="h-10 bg-slate-100 border-b border-slate-200 flex items-center justify-between px-6 shrink-0">
+                 <div className="flex gap-4 h-full">
+                    <button onClick={() => setActiveTab('stdout')} className={`h-full text-[9px] font-black uppercase tracking-widest border-b-2 transition-all ${activeTab === 'stdout' ? 'border-brand-cyan text-brand-blue' : 'border-transparent text-slate-400'}`}>Simulation</button>
+                    <button onClick={() => setActiveTab('testcases')} className={`h-full text-[9px] font-black uppercase tracking-widest border-b-2 transition-all ${activeTab === 'testcases' ? 'border-brand-cyan text-brand-blue' : 'border-transparent text-slate-400'}`}>Proctor</button>
+                 </div>
+                 <button onClick={runCurrentCode} disabled={isRunning} className="px-4 py-1 bg-brand-blue text-white rounded-md font-black text-[9px] uppercase tracking-widest hover:bg-brand-cyan transition-all disabled:opacity-50 flex items-center gap-2">
+                    {isRunning ? <Activity size={12} className="animate-spin" /> : <Play size={12} fill="currentColor" />} Execute Logic
+                 </button>
+              </div>
+              <div className="flex-1 p-6 overflow-y-auto custom-scrollbar font-mono bg-slate-50/30">
+                 {activeTab === 'stdout' && (
+                    <pre className="text-xs text-brand-blue font-bold whitespace-pre-wrap">{output || 'Terminal idle. Requesting subroutine input...'}</pre>
+                 )}
+                 {activeTab === 'testcases' && (
+                    <div className="h-full flex flex-col items-center justify-center text-slate-300 space-y-2 opacity-50">
+                       <ShieldAlert size={24} />
+                       <p className="text-[9px] font-black uppercase tracking-widest">Integrity lock active. Hidden unit tests inaccessible.</p>
+                    </div>
+                 )}
+              </div>
+           </section>
+        </main>
       </div>
+
+      {/* Submission Loader Overlay */}
+      {isSubmitting && (
+        <div className="fixed inset-0 z-[110] bg-[#0f172a] flex flex-col items-center justify-center text-white text-center">
+           <div className="relative w-24 h-24 mb-10">
+              <div className="absolute inset-0 border-4 border-brand-cyan/20 rounded-full"></div>
+              <div className="absolute inset-0 border-4 border-brand-cyan border-t-transparent rounded-full animate-spin"></div>
+              <Cpu size={32} className="absolute inset-0 m-auto text-brand-cyan animate-pulse" />
+           </div>
+           <h2 className="text-3xl font-heading font-black uppercase tracking-tighter mb-4">Analyzing Submission Registry</h2>
+           <p className="text-brand-cyan font-black text-xs uppercase tracking-[0.5em] animate-pulse">Running Evaluation across 10 Logic Units...</p>
+        </div>
+      )}
+
+      {/* Warning Overlay */}
+      {showWarningModal && (
+        <div className="fixed inset-0 z-[100] bg-slate-900/95 backdrop-blur-md flex items-center justify-center p-6">
+           <div className="bg-white p-12 rounded-[32px] max-w-sm w-full text-center space-y-6 shadow-2xl">
+              <AlertTriangle size={56} className="mx-auto text-brand-orange animate-bounce" />
+              <div className="space-y-2">
+                 <h3 className="text-2xl font-black text-brand-blue uppercase">Security Flag</h3>
+                 <p className="text-slate-500 text-sm font-medium">Session infraction detected. Please focus on the terminal window to prevent automatic termination.</p>
+              </div>
+              <div className="bg-slate-50 p-6 rounded-2xl">
+                 <span className="text-3xl font-black text-brand-orange">{warnings} / {settings.tabSwitchLimit}</span>
+              </div>
+              <button onClick={() => setShowWarningModal(false)} className="w-full py-4 btn-orange text-white rounded-2xl font-black text-xs uppercase tracking-widest">Return to Exam</button>
+           </div>
+        </div>
+      )}
     </div>
   );
 };

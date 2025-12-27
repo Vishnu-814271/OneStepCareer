@@ -1,5 +1,12 @@
+
 export type Role = 'ADMIN' | 'STUDENT' | 'GUEST';
 export type Difficulty = 'L0' | 'L1' | 'L2';
+
+export interface GlobalSettings {
+  tabSwitchLimit: number;
+  allowCopyPaste: boolean;
+  standardTimeLimit: number; // in seconds
+}
 
 export interface User {
   id: string;
@@ -10,25 +17,8 @@ export interface User {
   plan?: 'STUDENT' | 'PROFESSIONAL';
   paymentStatus?: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED' | 'NONE';
   joinedDate?: Date;
-  score?: number; // Total accumulated score
-  completedProblems?: string[]; // IDs of solved problems
-}
-
-export interface Course {
-  id: string;
-  title: string;
-  description: string;
-  level: 'Beginner' | 'Intermediate' | 'Advanced';
-  tags: string[];
-  image: string;
-  lessons: number;
-  duration: string;
-}
-
-export interface ChatMessage {
-  role: 'user' | 'model';
-  text: string;
-  timestamp: Date;
+  score?: number;
+  completedProblems?: string[];
 }
 
 export interface CommunityMessage {
@@ -37,13 +27,13 @@ export interface CommunityMessage {
   userName: string;
   userRole: Role;
   text: string;
-  timestamp: string; // ISO string for storage
+  timestamp: string;
 }
 
 export interface TestCase {
   input: string;
   expectedOutput: string;
-  isHidden: boolean; // Hidden test cases for grading
+  isHidden: boolean;
 }
 
 export interface Problem {
@@ -54,7 +44,7 @@ export interface Problem {
   difficulty: Difficulty;
   starterCode: string;
   testCases: TestCase[];
-  module?: string; // e.g., "Basic Python", "Data Structures"
+  module?: string;
   points?: number;
 }
 
@@ -66,13 +56,41 @@ export interface TestResult {
   isHidden: boolean;
 }
 
+export interface ProblemAnalysis {
+  problemId: string;
+  title: string;
+  score: number;
+  isPerfect: boolean;
+  testResults: TestResult[];
+  referenceCode?: string;
+}
+
 export interface AssessmentSummary {
   problemId: string;
-  score: number; // The points awarded (0 or Full)
-  maxPoints: number; // The max points for this problem
+  score: number;
+  maxPoints: number;
   totalTests: number;
   passedTests: number;
   testResults: TestResult[];
+  problemAnalyses: ProblemAnalysis[];
   timeTaken: string;
+  timestamp: Date;
+  warningsCount: number;
+}
+
+export interface Course {
+  id: string;
+  title: string;
+  description: string;
+  image: string;
+  level: string;
+  lessons: number;
+  duration: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  text: string;
+  sender: string;
   timestamp: Date;
 }

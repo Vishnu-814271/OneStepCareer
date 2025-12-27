@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import BookAuth from './components/BookAuth';
 import StudentDashboard from './components/StudentDashboard';
@@ -26,17 +27,17 @@ const App: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+      <div className="min-h-screen bg-[#f1f1f2] flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-           <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-           <p className="text-indigo-400 font-bold animate-pulse">Loading TechNexus...</p>
+           <div className="w-16 h-16 border-4 border-brand-cyan border-t-transparent rounded-full animate-spin"></div>
+           <p className="text-brand-blue font-bold animate-pulse">Initializing TechNexus Core...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="font-sans antialiased text-slate-900 dark:text-slate-100">
+    <div className="font-sans antialiased bg-[#f1f1f2] text-slate-800">
       {!user ? (
         <BookAuth onLogin={handleLogin} />
       ) : user.role === 'ADMIN' ? (
