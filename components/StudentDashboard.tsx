@@ -1,124 +1,350 @@
 
 import React, { useState, useEffect } from 'react';
-import { User, Course, Problem } from '../types';
+import { User, Problem, Difficulty } from '../types';
 import CodeLab from './CodeLab';
 import { dataService } from '../services/dataService';
-import { Terminal, BookOpen, ChevronRight, Play, Trophy, User as UserIcon, LogOut, ShieldAlert, Sparkles } from 'lucide-react';
+import { Terminal, BookOpen, ChevronRight, Trophy, User as UserIcon, LogOut, ShieldAlert, Zap, Target, Globe, MessageSquare, Clock, ArrowLeft, Layers, CheckCircle, Play, Cpu, AlertCircle, Signal, Lock, Briefcase, FileText } from 'lucide-react';
 import CommunityChat from './CommunityChat';
+import ResumeBuilder from './ResumeBuilder';
 
 interface StudentDashboardProps {
   user: User;
   onLogout: () => void;
 }
 
-type View = 'curriculum' | 'comms' | 'assessment';
+type View = 'curriculum' | 'comms' | 'career';
 
 const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) => {
   const [activeView, setActiveView] = useState<View>('curriculum');
-  const [selectedLanguage, setSelectedLanguage] = useState<string>('');
-  const [isExamActive, setIsExamActive] = useState(false);
+  
+  // State for Navigation Flow
+  const [selectedTrack, setSelectedTrack] = useState<string | null>(null); // The selected language (e.g., 'Python')
+  const [selectedLevel, setSelectedLevel] = useState<Difficulty | null>(null);
+  const [isExamActive, setIsExamActive] = useState(false); // Whether the actual CodeLab is running
+  
   const [currentUser, setCurrentUser] = useState<User>(user);
 
   useEffect(() => {
      const freshUser = dataService.getUserById(currentUser.id);
      if (freshUser) setCurrentUser(freshUser);
-  }, [isExamActive]);
+  }, [isExamActive, activeView]);
 
-  const startExamination = (lang: string) => {
-    setSelectedLanguage(lang);
-    setIsExamActive(true);
+  // Filter problems for the selected track and level to pass to CodeLab
+  const trackProblems = selectedTrack && selectedLevel
+    ? dataService.getProblems().filter(p => p.language === selectedTrack && p.difficulty === selectedLevel)
+    : [];
+
+  const handleTrackSelect = (lang: string) => {
+    setSelectedTrack(lang);
+    setSelectedLevel(null);
+    setIsExamActive(false);
   };
 
-  if (isExamActive) {
-    return <CodeLab onExit={() => setIsExamActive(false)} currentUser={currentUser} />;
+  const handleStartExam = () => {
+    if (selectedLevel) {
+      setIsExamActive(true);
+    }
+  };
+
+  const handleBackToDashboard = () => {
+    setSelectedTrack(null);
+    setSelectedLevel(null);
+    setIsExamActive(false);
+  };
+
+  // Helper to get problem count for display
+  const getProblemCountForLevel = (level: Difficulty) => {
+    if (!selectedTrack) return 0;
+    return dataService.getProblems().filter(p => p.language === selectedTrack && p.difficulty === level).length;
+  };
+
+  // 1. RENDER: EXAM MODE (CodeLab)
+  if (isExamActive && selectedTrack && selectedLevel) {
+    return <CodeLab problemSet={trackProblems} onExit={() => setIsExamActive(false)} currentUser={currentUser} />;
   }
 
   return (
-    <div className="min-h-screen bg-[#f1f1f2] flex student-theme-gradient">
-      {/* Sidebar */}
-      <aside className="w-20 md:w-72 bg-brand-blue flex flex-col sticky top-0 h-screen z-40 text-white shadow-2xl">
-        <div className="p-10 border-b border-white/10">
+    <div className="min-h-screen bg-[#f8fafc] flex">
+      {/* TechNexus Student Sidebar */}
+      <aside className="w-20 md:w-80 bg-[#0f172a] flex flex-col sticky top-0 h-screen z-40 text-white shadow-3xl border-r border-slate-800">
+        <div className="p-10">
            <div className="flex items-center gap-4">
-             <div className="bg-brand-cyan p-3 rounded-2xl shadow-lg shadow-brand-cyan/20">
+             <div className="bg-brand-cyan p-3 rounded-2xl shadow-xl shadow-brand-cyan/20">
                 <Terminal size={24} className="text-white" />
              </div>
-             <span className="font-heading font-black text-2xl hidden md:block text-white tracking-tighter uppercase">Nexus Core</span>
+             <div className="hidden md:block">
+                <span className="font-heading font-black text-2xl text-white tracking-tighter uppercase block leading-none">TECH<span className="text-brand-cyan">NEXUS</span></span>
+                <span className="text-[9px] font-black text-white/30 uppercase tracking-[0.3em]">Student Portal</span>
+             </div>
            </div>
         </div>
 
-        <nav className="flex-1 p-8 space-y-4 mt-6">
-          <button onClick={() => setActiveView('curriculum')} className={`w-full p-5 rounded-2xl flex items-center gap-4 transition-all group ${activeView === 'curriculum' ? 'bg-white text-brand-blue shadow-xl' : 'text-white/60 hover:text-white hover:bg-white/10'}`}>
+        <nav className="flex-1 p-8 space-y-4 mt-2">
+          <button onClick={() => { setActiveView('curriculum'); setSelectedTrack(null); }} className={`w-full p-5 rounded-2xl flex items-center gap-4 transition-all group ${activeView === 'curriculum' ? 'bg-brand-cyan text-white shadow-lg shadow-brand-cyan/20' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
             <BookOpen size={20} />
-            <span className="hidden md:block font-black text-xs uppercase tracking-widest">Training Paths</span>
+            <span className="hidden md:block font-black text-[11px] uppercase tracking-[0.2em]">My Learning Paths</span>
           </button>
-          <button onClick={() => setActiveView('comms')} className={`w-full p-5 rounded-2xl flex items-center gap-4 transition-all group ${activeView === 'comms' ? 'bg-white text-brand-blue shadow-xl' : 'text-white/60 hover:text-white hover:bg-white/10'}`}>
-            <ShieldAlert size={20} />
-            <span className="hidden md:block font-black text-xs uppercase tracking-widest">Network Comms</span>
+          
+          <button onClick={() => { setActiveView('career'); setSelectedTrack(null); }} className={`w-full p-5 rounded-2xl flex items-center gap-4 transition-all group ${activeView === 'career' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
+            <Briefcase size={20} />
+            <span className="hidden md:block font-black text-[11px] uppercase tracking-[0.2em]">Career Forge</span>
+          </button>
+
+          <button onClick={() => { setActiveView('comms'); setSelectedTrack(null); }} className={`w-full p-5 rounded-2xl flex items-center gap-4 transition-all group ${activeView === 'comms' ? 'bg-brand-orange text-white shadow-lg shadow-brand-orange/20' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
+            <MessageSquare size={20} />
+            <span className="hidden md:block font-black text-[11px] uppercase tracking-[0.2em]">Student Community</span>
           </button>
         </nav>
 
-        <div className="p-10 border-t border-white/10 space-y-6">
-           <div className="p-6 rounded-3xl bg-white/10 border border-white/20 text-center hidden md:block">
-              <div className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-1">Skill Pulse</div>
-              <div className="text-3xl font-black text-brand-orange">{currentUser.score || 0} <span className="text-xs opacity-50">XP</span></div>
+        <div className="p-10 space-y-6">
+           <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 hidden md:block">
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">My Progress</span>
+                <Trophy size={14} className="text-brand-orange" />
+              </div>
+              <div className="text-3xl font-black text-white">{currentUser.score || 0} <span className="text-[10px] opacity-40 uppercase tracking-widest font-bold">XP Earned</span></div>
+              <div className="w-full h-1.5 bg-slate-800 rounded-full mt-4 overflow-hidden">
+                <div className="h-full bg-brand-cyan" style={{ width: `${Math.min((currentUser.score || 0) / 10, 100)}%` }}></div>
+              </div>
            </div>
-           <button onClick={onLogout} className="w-full p-5 rounded-2xl text-white/60 hover:bg-red-500/20 hover:text-red-100 transition-all flex items-center gap-4 justify-center md:justify-start font-black uppercase text-[10px] tracking-widest">
+           <button onClick={onLogout} className="w-full p-5 rounded-2xl text-slate-500 hover:bg-red-500/10 hover:text-red-400 transition-all flex items-center gap-4 justify-center md:justify-start font-black uppercase text-[10px] tracking-widest">
              <LogOut size={18} />
-             <span className="hidden md:block">Terminate session</span>
+             <span className="hidden md:block">Log Out</span>
            </button>
         </div>
       </aside>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col min-h-screen">
-        <header className="h-24 bg-white/60 backdrop-blur-3xl sticky top-0 z-30 flex items-center justify-between px-12 border-b border-slate-200">
+      {/* Main Student Console */}
+      <div className="flex-1 flex flex-col min-h-screen relative overflow-hidden">
+        {/* Header */}
+        <header className="h-24 bg-white/80 backdrop-blur-xl sticky top-0 z-30 flex items-center justify-between px-12 border-b border-slate-200/60">
           <div className="flex items-center gap-4">
-             <div className="h-3 w-3 rounded-full bg-brand-cyan animate-pulse"></div>
-             <h2 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em]">Operational Node: {activeView}</h2>
+             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+             <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">
+                {selectedTrack ? `COURSE PROTOCOL: ${selectedTrack.toUpperCase()}` : 
+                 activeView === 'curriculum' ? 'Learning Dashboard' : 
+                 activeView === 'career' ? 'ATS Optimization Module' : 'Student Chat'}
+             </h2>
           </div>
           
-          <div className="flex items-center gap-8">
-             <div className="flex flex-col items-end">
-                <span className="text-sm font-black text-brand-blue uppercase tracking-tight">{currentUser.name}</span>
-                <span className="text-[10px] text-brand-orange font-black uppercase tracking-widest">Candidate Status: Verified</span>
+          <div className="flex items-center gap-6">
+             <div className="text-right hidden sm:block">
+                <span className="text-xs font-black text-[#0f172a] uppercase tracking-tight block">{currentUser.name}</span>
+                <span className="text-[9px] text-brand-orange font-black uppercase tracking-widest">Active Student</span>
              </div>
-             <div className="w-14 h-14 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-brand-blue shadow-sm">
-                <UserIcon size={24} />
+             <div className="w-12 h-12 rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center text-[#0f172a] shadow-sm">
+                <UserIcon size={20} />
              </div>
           </div>
         </header>
 
         <main className="p-12 flex-1 overflow-y-auto custom-scrollbar">
-          {activeView === 'curriculum' && (
-            <div className="space-y-12 animate-fade-in">
-              <div className="max-w-3xl">
-                <div className="inline-flex items-center gap-2 px-3 py-1 bg-brand-orange/10 text-brand-orange rounded-full text-[9px] font-black uppercase tracking-widest mb-4">
-                  <Sparkles size={12}/> Academic Enrollment Active
+          
+          {/* 2. RENDER: COURSE DETAIL VIEW (PRE-FLIGHT) */}
+          {activeView === 'curriculum' && selectedTrack && (
+             <div className="max-w-6xl mx-auto animate-fade-in space-y-12">
+                {/* Back Button */}
+                <button 
+                  onClick={handleBackToDashboard}
+                  className="flex items-center gap-2 text-slate-400 hover:text-brand-cyan transition-colors text-xs font-black uppercase tracking-widest"
+                >
+                  <ArrowLeft size={16} /> Return to Course Grid
+                </button>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+                   {/* Left Column: Course Info */}
+                   <div className="lg:col-span-2 space-y-10">
+                      <div>
+                         <div className="inline-flex items-center gap-2 px-3 py-1 bg-brand-cyan/10 text-brand-cyan rounded-full text-[9px] font-black uppercase tracking-widest mb-6">
+                            <Cpu size={12}/> Industrial Certification Track
+                         </div>
+                         <h1 className="text-6xl font-heading font-black text-[#0f172a] uppercase tracking-tighter mb-6">
+                            {selectedTrack} <span className="text-slate-300">Mastery</span>
+                         </h1>
+                         <p className="text-lg text-slate-500 font-medium leading-relaxed">
+                            This comprehensive assessment evaluates your ability to implement {selectedTrack} logic in a simulated industrial environment. 
+                            Select a difficulty tier below to begin your assessment.
+                         </p>
+                      </div>
+
+                      <div className="bg-white border border-slate-200 rounded-[32px] p-10 shadow-sm space-y-8">
+                         <div className="flex items-center justify-between border-b border-slate-100 pb-6">
+                            <h3 className="text-xl font-heading font-black text-[#0f172a] uppercase tracking-tight">Select Difficulty</h3>
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Choose Your Level</span>
+                         </div>
+                         
+                         <div className="space-y-4 relative">
+                            {/* Connector Line */}
+                            <div className="absolute left-[19px] top-4 bottom-4 w-0.5 bg-slate-100 -z-10"></div>
+
+                            {[
+                                { id: 'L0', label: 'Fundamentals (Easy)', desc: "Variable scope, data types, and basic control structures." },
+                                { id: 'L1', label: 'Algorithmic Logic (Medium)', desc: "Data manipulation, loops, and functional efficiency." },
+                                { id: 'L2', label: 'Industrial Application (Hard)', desc: "Edge-case handling, memory optimization, and complex logic." }
+                            ].map((levelItem) => {
+                               const isSelected = selectedLevel === levelItem.id;
+                               return (
+                                  <div 
+                                    key={levelItem.id} 
+                                    onClick={() => setSelectedLevel(levelItem.id as Difficulty)}
+                                    className={`flex items-start gap-6 group cursor-pointer p-6 rounded-3xl transition-all border-2 ${isSelected ? 'bg-brand-cyan/5 border-brand-cyan shadow-lg shadow-brand-cyan/10 transform scale-[1.02]' : 'bg-transparent border-transparent hover:bg-slate-50 hover:border-slate-100'}`}
+                                  >
+                                     <div className={`w-10 h-10 rounded-full flex items-center justify-center border-4 shadow-sm z-10 transition-colors shrink-0 ${isSelected ? 'bg-brand-cyan text-white border-white' : 'bg-slate-100 text-slate-400 border-white group-hover:bg-slate-200'}`}>
+                                        <Layers size={18} />
+                                     </div>
+                                     <div className="flex-1 pt-2">
+                                        <div className="flex items-center justify-between">
+                                           <h4 className={`text-lg font-black uppercase tracking-tight mb-2 ${isSelected ? 'text-brand-cyan' : 'text-[#0f172a]'}`}>{levelItem.label}</h4>
+                                           {isSelected && <CheckCircle size={20} className="text-brand-cyan" />}
+                                        </div>
+                                        <p className="text-sm text-slate-400 font-medium leading-relaxed">
+                                           {levelItem.desc}
+                                        </p>
+                                     </div>
+                                  </div>
+                               );
+                            })}
+                         </div>
+                      </div>
+                   </div>
+
+                   {/* Right Column: Exam Controls */}
+                   <div className="space-y-6">
+                      <div className="bg-[#0f172a] rounded-[40px] p-10 text-white shadow-2xl relative overflow-hidden flex flex-col justify-between min-h-[400px]">
+                         <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
+                            <Clock size={120} />
+                         </div>
+                         
+                         <div className="relative z-10 space-y-8">
+                            <div>
+                               <span className="text-[10px] font-black text-brand-orange uppercase tracking-widest mb-4 block">Assessment Status</span>
+                               
+                               {/* Replaced Button Grid with Status Display */}
+                               <div className="bg-white/5 rounded-2xl p-6 border border-white/10 text-center backdrop-blur-sm">
+                                  {selectedLevel ? (
+                                     <div>
+                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-2">Selected Tier</span>
+                                        <div className={`text-3xl font-black uppercase tracking-tight mb-1 ${selectedLevel === 'L0' ? 'text-emerald-400' : selectedLevel === 'L1' ? 'text-brand-cyan' : 'text-brand-orange'}`}>
+                                           {selectedLevel === 'L0' ? 'Fundamentals' : selectedLevel === 'L1' ? 'Algorithmic' : 'Industrial'}
+                                        </div>
+                                        <div className="text-[10px] font-bold text-white uppercase tracking-[0.2em] opacity-60">Level {selectedLevel.replace('L','')} Active</div>
+                                     </div>
+                                  ) : (
+                                     <div className="text-slate-500 py-2">
+                                        <span className="block mb-2 opacity-30"><Layers size={24} className="mx-auto"/></span>
+                                        <span className="text-[10px] font-black uppercase tracking-widest">Select a Level<br/>from Syllabus</span>
+                                     </div>
+                                  )}
+                               </div>
+                            </div>
+                            
+                            <div className="space-y-4 pt-4 border-t border-white/10">
+                               <div className="flex items-center justify-between text-sm border-b border-white/10 pb-3">
+                                  <span className="text-slate-400 font-medium">Problem Set</span>
+                                  <span className="font-bold">{selectedLevel ? getProblemCountForLevel(selectedLevel) : '-'} Units</span>
+                               </div>
+                               <div className="flex items-center justify-between text-sm border-b border-white/10 pb-3">
+                                  <span className="text-slate-400 font-medium">Difficulty</span>
+                                  <span className={`font-bold uppercase tracking-wider ${!selectedLevel ? 'text-slate-600' : selectedLevel === 'L0' ? 'text-emerald-400' : selectedLevel === 'L1' ? 'text-brand-cyan' : 'text-brand-orange'}`}>
+                                    {selectedLevel || 'Pending'}
+                                  </span>
+                               </div>
+                               <div className="flex items-center justify-between text-sm pb-1">
+                                  <span className="text-slate-400 font-medium">Est. Time</span>
+                                  <span className="font-bold text-white flex items-center gap-2">
+                                     <Clock size={14} className="text-brand-cyan"/>
+                                     {selectedLevel === 'L0' ? '45 MIN' : selectedLevel === 'L1' ? '60 MIN' : selectedLevel === 'L2' ? '90 MIN' : '--'}
+                                  </span>
+                               </div>
+                            </div>
+                         </div>
+
+                         <button 
+                           onClick={handleStartExam}
+                           disabled={!selectedLevel}
+                           className={`w-full py-5 rounded-2xl font-black text-sm uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 shadow-lg group relative z-20 ${
+                              selectedLevel 
+                              ? 'bg-brand-cyan hover:bg-white hover:text-brand-cyan text-[#0f172a] shadow-brand-cyan/20 cursor-pointer' 
+                              : 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                           }`}
+                         >
+                           {selectedLevel ? 'Initialize Exam' : 'Select Level'} 
+                           {selectedLevel ? <Play size={18} fill="currentColor" className="group-hover:scale-110 transition-transform" /> : <Lock size={16} />}
+                         </button>
+                      </div>
+
+                      <div className="bg-orange-50 border border-brand-orange/20 rounded-3xl p-6 flex gap-4 items-start">
+                         <AlertCircle className="text-brand-orange shrink-0" size={20} />
+                         <div className="text-xs text-brand-orange/80 font-medium leading-relaxed">
+                            <strong className="block text-brand-orange uppercase tracking-widest mb-1">Pre-Flight Check</strong>
+                            Ensure your browser is maximized. Switching tabs during the exam will trigger security warnings and may lead to session termination.
+                         </div>
+                      </div>
+                   </div>
                 </div>
-                <h1 className="text-5xl font-heading font-black text-brand-blue tracking-tighter mb-4">Industrial <span className="text-brand-cyan">Protocols</span></h1>
-                <p className="text-slate-500 text-lg font-medium leading-relaxed">Select a training architecture to begin your timed 90-minute examination session. Completion of 10 logic units is mandatory for XP accreditation.</p>
+             </div>
+          )}
+
+          {/* 3. RENDER: CURRICULUM GRID (DEFAULT) */}
+          {activeView === 'curriculum' && !selectedTrack && (
+            <div className="space-y-12 animate-fade-in max-w-7xl mx-auto">
+              <div className="max-w-3xl">
+                <div className="inline-flex items-center gap-2 px-3 py-1 bg-brand-cyan/10 text-brand-cyan rounded-full text-[9px] font-black uppercase tracking-widest mb-4">
+                  <Target size={12}/> Your Academic Journey
+                </div>
+                <h1 className="text-5xl md:text-6xl font-heading font-black text-[#0f172a] tracking-tighter mb-4 leading-none uppercase">Select Your <span className="text-brand-cyan">Course</span></h1>
+                <p className="text-slate-500 font-medium leading-relaxed italic text-lg">
+                  Access industrial-grade logic units and start building your technical profile today.
+                </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {dataService.getLanguages().map(lang => (
-                  <div key={lang} onClick={() => startExamination(lang)} className="group glass-card p-10 rounded-[40px] cursor-pointer transition-all hover:bg-white border-2 border-transparent hover:border-brand-cyan/20 flex flex-col shadow-sm">
-                     <div className="w-20 h-20 rounded-3xl bg-brand-cyan/10 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform">
-                        <span className="text-4xl font-black text-brand-blue opacity-50">{lang[0]}</span>
+                  <div key={lang} onClick={() => handleTrackSelect(lang)} className="group bg-white border border-slate-200 p-10 rounded-[48px] cursor-pointer transition-all hover:border-brand-cyan/40 hover:shadow-2xl hover:-translate-y-1 flex flex-col relative overflow-hidden">
+                     <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <Terminal size={100} className="text-slate-900 rotate-12" />
                      </div>
-                     <h3 className="text-3xl font-heading font-black text-brand-blue mb-4">{lang}</h3>
-                     <p className="text-slate-500 text-sm mb-10 leading-relaxed font-medium">10 Industrial logic units mapped for {lang} architecture.</p>
-                     <button className="mt-auto px-8 py-4 rounded-2xl bg-slate-100 border border-slate-200 text-brand-blue font-black text-xs group-hover:bg-brand-cyan group-hover:text-white group-hover:border-brand-cyan transition-all uppercase tracking-widest flex items-center justify-center gap-3">
-                        Enter Exam Hall <ChevronRight size={16}/>
-                     </button>
+                     
+                     <div className="relative z-10">
+                        <div className="flex items-start justify-between mb-10">
+                            <div className="w-20 h-20 rounded-[28px] bg-brand-cyan/5 border border-brand-cyan/10 flex items-center justify-center group-hover:scale-110 group-hover:bg-brand-cyan group-hover:text-white transition-all duration-500">
+                              <span className="text-3xl font-black">{lang[0]}</span>
+                            </div>
+                        </div>
+                        <h3 className="text-2xl font-heading font-black text-[#0f172a] mb-2 uppercase tracking-tight">{lang}</h3>
+                        <p className="text-slate-400 text-sm mb-12 leading-relaxed font-medium">Master the core concepts of {lang} through our verified problem sets.</p>
+                        
+                        <div className="mt-auto flex items-center justify-between pt-8 border-t border-slate-100">
+                            <div className="flex items-center gap-2">
+                              <Zap size={14} className="text-brand-orange" />
+                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">View Syllabus</span>
+                            </div>
+                            <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 group-hover:bg-brand-cyan group-hover:text-white transition-all shadow-sm">
+                              <ChevronRight size={20} />
+                            </div>
+                        </div>
+                     </div>
                   </div>
                 ))}
               </div>
             </div>
           )}
           
+          {/* 4. RENDER: RESUME BUILDER */}
+          {activeView === 'career' && (
+             <ResumeBuilder currentUser={currentUser} />
+          )}
+
+          {/* 5. RENDER: COMMUNITY CHAT */}
           {activeView === 'comms' && (
-            <div className="h-[calc(100vh-250px)] animate-fade-in">
-               <CommunityChat currentUser={currentUser} />
+            <div className="h-[calc(100vh-250px)] animate-fade-in max-w-5xl mx-auto flex flex-col">
+               <div className="mb-8">
+                  <h1 className="text-4xl font-heading font-black text-[#0f172a] uppercase tracking-tighter">Student <span className="text-brand-orange">Community</span></h1>
+                  <p className="text-slate-500 font-medium">Connect with other learners and share knowledge.</p>
+               </div>
+               <div className="flex-1">
+                 <CommunityChat currentUser={currentUser} />
+               </div>
             </div>
           )}
         </main>

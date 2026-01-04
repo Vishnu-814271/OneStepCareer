@@ -94,3 +94,40 @@ export interface ChatMessage {
   sender: string;
   timestamp: Date;
 }
+
+// --- NEW RESUME TYPES ---
+export interface ResumeData {
+  personalInfo: {
+    fullName: string;
+    email: string;
+    phone: string;
+    location: string;
+    linkedin: string;
+    role: string;
+  };
+  summary: string;
+  skills: {
+    technical: string[];
+    soft: string[];
+    tools: string[];
+  };
+  experience: {
+    id: number;
+    role: string;
+    company: string;
+    date: string;
+    bullets: string[];
+  }[];
+  education: {
+    id: number;
+    degree: string;
+    school: string;
+    date: string;
+  }[];
+  projects: {
+    id: number;
+    name: string;
+    description: string;
+    techStack: string;
+  }[];
+}
