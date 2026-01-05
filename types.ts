@@ -1,6 +1,6 @@
 
 export type Role = 'ADMIN' | 'STUDENT' | 'GUEST';
-export type Difficulty = 'L0' | 'L1' | 'L2';
+export type Difficulty = 'L0' | 'L1' | 'L2' | 'GRAND'; // Added GRAND difficulty
 
 export interface GlobalSettings {
   tabSwitchLimit: number;
@@ -19,6 +19,8 @@ export interface User {
   joinedDate?: Date;
   score?: number;
   completedProblems?: string[];
+  completedGrandTests?: string[]; // Array of Languages (e.g. ['Python'])
+  unlockedProjects?: string[]; // Array of Languages
 }
 
 export interface CommunityMessage {
@@ -46,6 +48,15 @@ export interface Problem {
   testCases: TestCase[];
   module?: string;
   points?: number;
+}
+
+export interface ProjectDefinition {
+  id: string;
+  language: string;
+  title: string;
+  description: string;
+  requirements: string[];
+  difficulty: 'Capstone';
 }
 
 export interface TestResult {
@@ -115,6 +126,7 @@ export interface ResumeData {
     role: string;
   };
   summary: string;
+  achievements: string[]; // Added achievements array
   skills: {
     technical: string[];
     soft: string[];

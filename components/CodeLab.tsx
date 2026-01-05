@@ -80,7 +80,12 @@ const CodeLab: React.FC<CodeLabProps> = ({ problemSet = [], onExit, currentUser 
       const totalTestsCount = problemAnalyses.reduce((sum, res) => sum + res.testResults.length, 0);
 
       if (currentUser) {
-        dataService.updateUserScore(currentUser.id, `EXAM_${Date.now()}`, totalScore);
+        // Update user score AND track specific problem completions (for Grand Test logic)
+        problemAnalyses.forEach(analysis => {
+            if (analysis.isPerfect) {
+                dataService.updateUserScore(currentUser.id, analysis.problemId, analysis.score);
+            }
+        });
       }
 
       setAssessmentSummary({

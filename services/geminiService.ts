@@ -137,6 +137,7 @@ export const generateATSResume = async (
         {
           "personalInfo": { "fullName": string, "email": string, "phone": string, "location": string, "linkedin": string, "role": string },
           "summary": string (Professional summary, max 3 sentences, keyword rich),
+          "achievements": string[] (List of 3-4 significant key achievements or awards),
           "skills": { "technical": string[], "soft": string[], "tools": string[] },
           "experience": [{ "id": number, "role": string, "company": string, "date": string, "bullets": string[] (3-4 strong achievements per role) }],
           "education": [{ "id": number, "degree": string, "school": string, "date": string }],

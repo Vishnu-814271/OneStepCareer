@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
-import { User, Problem, Difficulty, CourseModule } from '../types';
+import { User, Problem, Difficulty, CourseModule, ProjectDefinition } from '../types';
 import CodeLab from './CodeLab';
 import { dataService } from '../services/dataService';
-import { Terminal, BookOpen, ChevronRight, Trophy, User as UserIcon, LogOut, ShieldAlert, Zap, Target, Globe, MessageSquare, Clock, ArrowLeft, Layers, CheckCircle, Play, Cpu, AlertCircle, Signal, Lock, Briefcase, FileText, LayoutGrid, Database, Binary, Code, Library } from 'lucide-react';
+import { Terminal, BookOpen, ChevronRight, Trophy, User as UserIcon, LogOut, ShieldAlert, Zap, Target, Globe, MessageSquare, Clock, ArrowLeft, Layers, CheckCircle, Play, Cpu, AlertCircle, Signal, Lock, Briefcase, FileText, LayoutGrid, Database, Binary, Code, Library, Star, FolderGit2 } from 'lucide-react';
 import CommunityChat from './CommunityChat';
 import ResumeBuilder from './ResumeBuilder';
 
@@ -18,23 +18,27 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
   const [activeView, setActiveView] = useState<View>('curriculum');
   
   // State for Navigation Flow
-  const [selectedTrack, setSelectedTrack] = useState<string | null>(null); // The selected language (e.g., 'Python')
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null); // The selected category (e.g., 'Basic Python')
-  const [selectedModule, setSelectedModule] = useState<CourseModule | null>(null); // The selected module
+  const [selectedTrack, setSelectedTrack] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedModule, setSelectedModule] = useState<CourseModule | null>(null);
   const [selectedLevel, setSelectedLevel] = useState<Difficulty | null>(null);
-  const [isExamActive, setIsExamActive] = useState(false); // Whether the actual CodeLab is running
+  const [isExamActive, setIsExamActive] = useState(false);
+  const [activeProblemSet, setActiveProblemSet] = useState<Problem[]>([]);
   
+  const [showProjectModal, setShowProjectModal] = useState<ProjectDefinition | null>(null);
   const [currentUser, setCurrentUser] = useState<User>(user);
 
   useEffect(() => {
      const freshUser = dataService.getUserById(currentUser.id);
      if (freshUser) setCurrentUser(freshUser);
-  }, [isExamActive, activeView]);
+  }, [isExamActive, activeView, showProjectModal]);
 
   // Filter problems for the selected track, module and level
-  const trackProblems = selectedTrack && selectedLevel && selectedModule
-    ? dataService.getProblems().filter(p => p.language === selectedTrack && p.module === selectedModule.title && p.difficulty === selectedLevel)
-    : [];
+  const getStandardProblems = () => {
+    return selectedTrack && selectedLevel && selectedModule
+      ? dataService.getProblems().filter(p => p.language === selectedTrack && p.module === selectedModule.title && p.difficulty === selectedLevel)
+      : [];
+  };
 
   const handleTrackSelect = (lang: string) => {
     setSelectedTrack(lang);
@@ -56,8 +60,19 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
 
   const handleStartExam = () => {
     if (selectedLevel) {
+      setActiveProblemSet(getStandardProblems());
       setIsExamActive(true);
     }
+  };
+
+  const handleStartGrandTest = (lang: string) => {
+      const grandTest = dataService.getGrandTest(lang);
+      if (grandTest) {
+          setActiveProblemSet([grandTest]);
+          setIsExamActive(true);
+      } else {
+          alert("Grand Test not available for this track yet.");
+      }
   };
 
   const handleBackToModules = () => {
@@ -98,8 +113,8 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
   }
 
   // 1. RENDER: EXAM MODE (CodeLab)
-  if (isExamActive && selectedTrack && selectedLevel) {
-    return <CodeLab problemSet={trackProblems} onExit={() => setIsExamActive(false)} currentUser={currentUser} />;
+  if (isExamActive) {
+    return <CodeLab problemSet={activeProblemSet} onExit={() => setIsExamActive(false)} currentUser={currentUser} />;
   }
 
   return (
@@ -126,7 +141,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
           
           <button onClick={() => { setActiveView('career'); setSelectedTrack(null); }} className={`w-full p-5 rounded-2xl flex items-center gap-4 transition-all group ${activeView === 'career' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
             <Briefcase size={20} />
-            <span className="hidden md:block font-black text-[11px] uppercase tracking-[0.2em]">Career Forge</span>
+            <span className="hidden md:block font-black text-[11px] uppercase tracking-[0.2em]">ATS Resume</span>
           </button>
 
           <button onClick={() => { setActiveView('comms'); setSelectedTrack(null); }} className={`w-full p-5 rounded-2xl flex items-center gap-4 transition-all group ${activeView === 'comms' ? 'bg-brand-orange text-white shadow-lg shadow-brand-orange/20' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
@@ -164,7 +179,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
                  selectedCategory ? `COURSE: ${selectedCategory.toUpperCase()}` : 
                  selectedTrack ? `TRACK: ${selectedTrack.toUpperCase()}` : 
                  activeView === 'curriculum' ? 'Academy Dashboard' : 
-                 activeView === 'career' ? 'ATS Optimization Module' : 'Student Chat'}
+                 activeView === 'career' ? 'ATS Resume Builder' : 'Student Chat'}
              </h2>
           </div>
           
@@ -364,7 +379,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
              </div>
           )}
 
-          {/* 4. RENDER: CATEGORY SELECTION VIEW */}
+          {/* 4. RENDER: CATEGORY SELECTION VIEW (INCLUDES GRAND TEST & PROJECT) */}
           {activeView === 'curriculum' && selectedTrack && !selectedCategory && (
              <div className="max-w-7xl mx-auto animate-fade-in space-y-12">
                <button 
@@ -382,11 +397,25 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
                      {selectedTrack} <span className="text-brand-cyan">Courses</span>
                    </h1>
                    <p className="text-slate-500 font-medium leading-relaxed italic text-lg max-w-2xl">
-                     Select a course category to view available modules and topics.
+                     Complete all modules to unlock the Final Grand Assessment and Capstone Project.
                    </p>
+                   {/* Progress Indicator */}
+                   <div className="mt-6 max-w-md">
+                      <div className="flex justify-between text-xs font-black uppercase tracking-widest mb-2 text-slate-500">
+                          <span>Track Progress</span>
+                          <span>{dataService.getTrackProgress(currentUser.id, selectedTrack)}% Completed</span>
+                      </div>
+                      <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-brand-cyan transition-all duration-1000" 
+                            style={{width: `${dataService.getTrackProgress(currentUser.id, selectedTrack)}%`}}
+                          ></div>
+                      </div>
+                   </div>
                </div>
 
                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                 {/* Standard Categories */}
                  {dataService.getCategoriesByLanguage(selectedTrack).map((cat, idx) => (
                     <div 
                       key={idx} 
@@ -414,6 +443,82 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
                        </div>
                     </div>
                  ))}
+
+                 {/* GRAND TEST CARD */}
+                 {(() => {
+                     const progress = dataService.getTrackProgress(currentUser.id, selectedTrack);
+                     const isUnlocked = progress >= 100;
+                     const isCompleted = currentUser.completedGrandTests?.includes(selectedTrack);
+                     
+                     return (
+                         <div 
+                           onClick={() => isUnlocked ? handleStartGrandTest(selectedTrack) : null}
+                           className={`group p-10 rounded-[40px] border transition-all flex flex-col h-full relative overflow-hidden ${isUnlocked ? 'bg-gradient-to-br from-amber-50 to-white border-amber-200 hover:shadow-2xl cursor-pointer' : 'bg-slate-50 border-slate-200 cursor-not-allowed opacity-70'}`}
+                         >
+                            <div className="absolute top-0 right-0 p-8 opacity-5">
+                               <Star size={120} className="rotate-12"/>
+                            </div>
+                            
+                            <div className="relative z-10">
+                               <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-6 transition-colors ${isUnlocked ? 'bg-amber-100 text-amber-600' : 'bg-slate-200 text-slate-400'}`}>
+                                   {isUnlocked ? <Star size={28} fill="currentColor" /> : <Lock size={28} />}
+                               </div>
+                               <h3 className={`text-2xl font-heading font-black mb-3 uppercase tracking-tight ${isUnlocked ? 'text-amber-700' : 'text-slate-500'}`}>Grand Assessment</h3>
+                               <p className="text-slate-400 text-sm font-medium mb-8">
+                                  {isCompleted ? 'Assessment Passed. Project Access Granted.' : isUnlocked ? 'Final verified examination. Pass to unlock Capstone Project.' : 'Complete all modules to unlock this examination.'}
+                               </p>
+                               <div className={`flex items-center justify-between pt-6 border-t mt-auto ${isUnlocked ? 'border-amber-100' : 'border-slate-100'}`}>
+                                   <span className={`text-[10px] font-black uppercase tracking-widest ${isUnlocked ? 'text-amber-600' : 'text-slate-400'}`}>
+                                       {isCompleted ? 'Completed' : isUnlocked ? 'Start Exam' : 'Locked'}
+                                   </span>
+                                   <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all shadow-sm ${isUnlocked ? 'bg-amber-500 text-white' : 'bg-slate-200 text-slate-400'}`}>
+                                     {isCompleted ? <CheckCircle size={20} /> : <Play size={20} fill="currentColor" />}
+                                   </div>
+                               </div>
+                            </div>
+                         </div>
+                     );
+                 })()}
+
+                 {/* CAPSTONE PROJECT CARD */}
+                 {(() => {
+                     const isGrandTestPassed = currentUser.completedGrandTests?.includes(selectedTrack);
+                     
+                     return (
+                         <div 
+                           onClick={() => {
+                               if (isGrandTestPassed) {
+                                   const proj = dataService.getProject(selectedTrack);
+                                   if (proj) setShowProjectModal(proj);
+                               }
+                           }}
+                           className={`group p-10 rounded-[40px] border transition-all flex flex-col h-full relative overflow-hidden ${isGrandTestPassed ? 'bg-gradient-to-br from-indigo-50 to-white border-indigo-200 hover:shadow-2xl cursor-pointer' : 'bg-slate-50 border-slate-200 cursor-not-allowed opacity-70'}`}
+                         >
+                            <div className="absolute top-0 right-0 p-8 opacity-5">
+                               <FolderGit2 size={120} className="rotate-12"/>
+                            </div>
+                            
+                            <div className="relative z-10">
+                               <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-6 transition-colors ${isGrandTestPassed ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-200 text-slate-400'}`}>
+                                   {isGrandTestPassed ? <FolderGit2 size={28} /> : <Lock size={28} />}
+                               </div>
+                               <h3 className={`text-2xl font-heading font-black mb-3 uppercase tracking-tight ${isGrandTestPassed ? 'text-indigo-700' : 'text-slate-500'}`}>Capstone Project</h3>
+                               <p className="text-slate-400 text-sm font-medium mb-8">
+                                  {isGrandTestPassed ? 'Access the industrial problem statement and implementation guide.' : 'Pass the Grand Assessment to access project requirements.'}
+                               </p>
+                               <div className={`flex items-center justify-between pt-6 border-t mt-auto ${isGrandTestPassed ? 'border-indigo-100' : 'border-slate-100'}`}>
+                                   <span className={`text-[10px] font-black uppercase tracking-widest ${isGrandTestPassed ? 'text-indigo-600' : 'text-slate-400'}`}>
+                                       {isGrandTestPassed ? 'View Brief' : 'Locked'}
+                                   </span>
+                                   <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all shadow-sm ${isGrandTestPassed ? 'bg-indigo-500 text-white' : 'bg-slate-200 text-slate-400'}`}>
+                                     <ChevronRight size={20} />
+                                   </div>
+                               </div>
+                            </div>
+                         </div>
+                     );
+                 })()}
+
                  {dataService.getCategoriesByLanguage(selectedTrack).length === 0 && (
                     <div className="col-span-full py-20 text-center border-2 border-dashed border-slate-200 rounded-[32px]">
                        <AlertCircle size={48} className="mx-auto text-slate-300 mb-4"/>
@@ -449,6 +554,10 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
                         <div className="flex items-start justify-between mb-10">
                             <div className="w-20 h-20 rounded-[28px] bg-brand-cyan/5 border border-brand-cyan/10 flex items-center justify-center group-hover:scale-110 group-hover:bg-brand-cyan group-hover:text-white transition-all duration-500">
                               <span className="text-3xl font-black">{lang[0]}</span>
+                            </div>
+                            <div className="text-right">
+                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Progress</span>
+                                <span className="text-xl font-black text-brand-cyan">{dataService.getTrackProgress(currentUser.id, lang)}%</span>
                             </div>
                         </div>
                         <h3 className="text-2xl font-heading font-black text-[#0f172a] mb-2 uppercase tracking-tight">{lang}</h3>
@@ -486,6 +595,52 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
                  <CommunityChat currentUser={currentUser} />
                </div>
             </div>
+          )}
+
+          {/* PROJECT MODAL */}
+          {showProjectModal && (
+              <div className="fixed inset-0 z-[100] bg-slate-900/90 backdrop-blur-xl flex items-center justify-center p-6 animate-in zoom-in-95 duration-300">
+                  <div className="bg-white w-full max-w-4xl max-h-[90vh] rounded-[40px] shadow-2xl flex flex-col overflow-hidden relative">
+                      <button 
+                        onClick={() => setShowProjectModal(null)}
+                        className="absolute top-6 right-6 p-3 bg-slate-100 hover:bg-slate-200 rounded-full transition-colors"
+                      >
+                          <LogOut size={20} className="text-slate-500" />
+                      </button>
+                      
+                      <div className="bg-[#0f172a] p-12 text-white">
+                          <div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-500/20 text-indigo-300 rounded-full text-[10px] font-black uppercase tracking-widest mb-4 border border-indigo-500/20">
+                             <FolderGit2 size={12}/> Capstone Project
+                          </div>
+                          <h2 className="text-4xl font-heading font-black uppercase tracking-tighter mb-4 text-white">{showProjectModal.title}</h2>
+                          <p className="text-slate-400 font-medium max-w-2xl text-lg">{showProjectModal.description}</p>
+                      </div>
+
+                      <div className="flex-1 overflow-y-auto p-12 bg-slate-50">
+                          <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest mb-6 border-b border-slate-200 pb-2">Technical Requirements</h3>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {showProjectModal.requirements.map((req, i) => (
+                                  <div key={i} className="flex items-start gap-4 p-6 bg-white rounded-2xl border border-slate-200 shadow-sm">
+                                      <div className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 font-black text-xs shrink-0">
+                                          {i + 1}
+                                      </div>
+                                      <p className="text-slate-600 font-medium text-sm leading-relaxed">{req}</p>
+                                  </div>
+                              ))}
+                          </div>
+                          
+                          <div className="mt-12 p-8 bg-blue-50 border border-blue-100 rounded-3xl flex items-start gap-4">
+                              <Target className="text-blue-500 shrink-0 mt-1" />
+                              <div>
+                                  <h4 className="font-bold text-blue-900 mb-2">Implementation Instructions</h4>
+                                  <p className="text-sm text-blue-800 leading-relaxed">
+                                      This project must be implemented locally or in a dedicated IDE. Once completed, upload your source code to GitHub and submit the repository link to your evaluator for final certification. 
+                                  </p>
+                              </div>
+                          </div>
+                      </div>
+                  </div>
+              </div>
           )}
         </main>
       </div>
