@@ -324,7 +324,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
                                     {category}
                                 </h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                    {catModules.map(mod => (
+                                    {(catModules as CourseModule[]).map(mod => (
                                         <div key={mod.id} className="bg-white p-6 rounded-3xl border border-slate-200 flex flex-col justify-between group hover:border-brand-cyan/30 hover:shadow-xl transition-all h-full">
                                             <div>
                                                 <div className="flex items-center justify-between mb-4">
