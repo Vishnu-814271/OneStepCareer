@@ -159,7 +159,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
   }, {} as Record<string, CourseModule[]>);
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-orange-500 to-amber-600 flex flex-col">
       <nav className="h-20 bg-brand-blue border-b border-white/10 flex items-center justify-between px-10 text-white shrink-0 z-20 shadow-xl">
         <div className="flex items-center gap-4">
           <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center font-black shadow-inner">NC</div>
@@ -197,17 +197,17 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
           </div>
         </aside>
 
-        <main className="flex-1 p-16 overflow-y-auto custom-scrollbar bg-slate-50">
+        <main className="flex-1 p-16 overflow-y-auto custom-scrollbar bg-white/5 backdrop-blur-sm">
           
           {/* SECURITY TAB */}
           {activeTab === 'security' && (
             <div className="max-w-4xl animate-fade-in space-y-16">
                <div className="space-y-4">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-brand-orange/10 text-brand-orange rounded-full text-[9px] font-black uppercase tracking-widest">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/20 text-white rounded-full text-[9px] font-black uppercase tracking-widest border border-white/20">
                     <ShieldAlert size={12}/> Security Infrastructure
                   </div>
-                  <h2 className="text-5xl font-heading font-black text-brand-blue uppercase tracking-tighter">Integrity <span className="text-brand-cyan">Protocols</span></h2>
-                  <p className="text-slate-500 font-medium max-w-xl">Configure system-wide behavioral heuristics and automated proctoring termination thresholds for all technical assessments.</p>
+                  <h2 className="text-5xl font-heading font-black text-white uppercase tracking-tighter">Integrity <span className="text-white/70">Protocols</span></h2>
+                  <p className="text-white/80 font-medium max-w-xl">Configure system-wide behavioral heuristics and automated proctoring termination thresholds for all technical assessments.</p>
                </div>
 
                <form onSubmit={handleSaveSettings} className="space-y-10">
@@ -270,7 +270,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
                      </div>
                   </div>
 
-                  <button type="submit" className="w-full py-6 btn-orange text-white rounded-[32px] font-black text-sm uppercase tracking-[0.3em] shadow-3xl flex items-center justify-center gap-5 hover:scale-[1.02] active:scale-95 transition-all">
+                  <button type="submit" className="w-full py-6 bg-white text-orange-600 rounded-[32px] font-black text-sm uppercase tracking-[0.3em] shadow-3xl flex items-center justify-center gap-5 hover:scale-[1.02] active:scale-95 transition-all">
                     {saveStatus ? <><ShieldCheck size={24}/> Protocols Synchronized</> : <><Save size={24}/> Update Security Registry</>}
                   </button>
                </form>
@@ -284,10 +284,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
                 {/* Header Section */}
                 <div className="flex items-center justify-between">
                    <div className="space-y-2">
-                      <div className="inline-flex items-center gap-2 px-3 py-1 bg-brand-cyan/10 text-brand-cyan rounded-full text-[9px] font-black uppercase tracking-widest">
+                      <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/20 text-white rounded-full text-[9px] font-black uppercase tracking-widest border border-white/20">
                         <BookOpen size={12}/> Curriculum Control
                       </div>
-                      <h2 className="text-4xl font-heading font-black text-brand-blue uppercase tracking-tighter">Academy <span className="text-brand-cyan">Manager</span></h2>
+                      <h2 className="text-4xl font-heading font-black text-white uppercase tracking-tighter">Academy <span className="text-white/70">Manager</span></h2>
                    </div>
                    
                    {!activeModule && (
@@ -296,7 +296,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
                             <button 
                             key={lang}
                             onClick={() => setSelectedLanguage(lang)}
-                            className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${selectedLanguage === lang ? 'bg-brand-blue text-white shadow-lg' : 'bg-white text-slate-400 hover:bg-slate-100'}`}
+                            className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${selectedLanguage === lang ? 'bg-white text-brand-blue shadow-lg' : 'bg-white/10 text-white hover:bg-white/20'}`}
                             >
                                 {lang}
                             </button>
@@ -311,7 +311,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
                         <div className="flex items-center justify-end">
                             <button 
                             onClick={() => { setIsEditingModule(true); setEditingModule({}); }}
-                            className="flex items-center gap-2 px-4 py-2 bg-brand-cyan text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-cyan-500 transition-all"
+                            className="flex items-center gap-2 px-4 py-2 bg-white text-brand-blue rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-100 transition-all"
                             >
                                 <Plus size={16} /> New Module
                             </button>
@@ -319,8 +319,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
 
                         {Object.entries(groupedModules).map(([category, catModules]) => (
                             <div key={category} className="space-y-6">
-                                <h3 className="text-xl font-bold text-slate-700 border-b border-slate-200 pb-2 flex items-center gap-2">
-                                    <Folder size={20} className="text-brand-blue" />
+                                <h3 className="text-xl font-bold text-white border-b border-white/20 pb-2 flex items-center gap-2">
+                                    <Folder size={20} className="text-white/70" />
                                     {category}
                                 </h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -352,10 +352,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
                         ))}
                         
                         {Object.keys(groupedModules).length === 0 && (
-                             <div className="text-center py-20 bg-white rounded-[32px] border-2 border-dashed border-slate-200">
-                                <BookOpen size={48} className="mx-auto text-slate-300 mb-4" />
-                                <p className="text-slate-400 font-medium">No courses found for {selectedLanguage}.</p>
-                                <p className="text-xs text-slate-300 uppercase tracking-widest mt-2">Create a new module to get started.</p>
+                             <div className="text-center py-20 bg-white/10 rounded-[32px] border-2 border-dashed border-white/20">
+                                <BookOpen size={48} className="mx-auto text-white/40 mb-4" />
+                                <p className="text-white font-medium">No courses found for {selectedLanguage}.</p>
+                                <p className="text-xs text-white/60 uppercase tracking-widest mt-2">Create a new module to get started.</p>
                              </div>
                         )}
                     </div>
@@ -366,7 +366,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
                     <div className="animate-in slide-in-from-right-4 space-y-8">
                         <button 
                             onClick={() => setActiveModule(null)}
-                            className="flex items-center gap-2 text-slate-400 hover:text-brand-blue font-bold text-xs uppercase tracking-widest"
+                            className="flex items-center gap-2 text-white/60 hover:text-white font-bold text-xs uppercase tracking-widest"
                         >
                             <ArrowLeft size={16} /> Back to Modules
                         </button>
@@ -397,13 +397,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
 
                             <div className="flex-1 space-y-6">
                                 <div className="flex items-center justify-between">
-                                    <h3 className="text-xl font-bold text-slate-700 flex items-center gap-2">
-                                        <Layers size={20} className="text-slate-400"/>
-                                        Problem Set <span className="text-slate-300">/</span> {selectedDifficulty}
+                                    <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                                        <Layers size={20} className="text-white/60"/>
+                                        Problem Set <span className="text-white/40">/</span> {selectedDifficulty}
                                     </h3>
                                     <button 
                                         onClick={handleCreateProblem}
-                                        className="flex items-center gap-2 px-5 py-2.5 bg-brand-blue text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-brand-cyan transition-all shadow-lg"
+                                        className="flex items-center gap-2 px-5 py-2.5 bg-white text-brand-blue rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-100 transition-all shadow-lg"
                                     >
                                         <Plus size={16} /> Add Problem
                                     </button>
@@ -423,7 +423,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
                                         </div>
                                     ))}
                                     {moduleProblems.length === 0 && (
-                                        <div className="p-12 text-center border-2 border-dashed border-slate-200 rounded-3xl text-slate-400 text-sm font-medium">
+                                        <div className="p-12 text-center border-2 border-dashed border-white/20 rounded-3xl text-white/60 text-sm font-medium bg-white/5">
                                             No problems found for this difficulty tier.
                                         </div>
                                     )}
@@ -574,20 +574,20 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
           )}
           
           {activeTab === 'telemetry' && (
-            <div className="flex flex-col items-center justify-center h-full space-y-6 opacity-30 animate-pulse">
-               <div className="w-20 h-20 bg-brand-blue rounded-3xl flex items-center justify-center text-white">
+            <div className="flex flex-col items-center justify-center h-full space-y-6 opacity-30 animate-pulse text-white">
+               <div className="w-20 h-20 bg-white/20 rounded-3xl flex items-center justify-center text-white">
                   <BarChart3 size={40} />
                </div>
-               <span className="text-[11px] font-black uppercase tracking-[1em] text-brand-blue">Telemetry Stream Initializing...</span>
+               <span className="text-[11px] font-black uppercase tracking-[1em] text-white">Telemetry Stream Initializing...</span>
             </div>
           )}
           
           {activeTab === 'personnel' && (
-            <div className="flex flex-col items-center justify-center h-full space-y-6 opacity-30 animate-pulse">
-               <div className="w-20 h-20 bg-brand-cyan rounded-3xl flex items-center justify-center text-white">
+            <div className="flex flex-col items-center justify-center h-full space-y-6 opacity-30 animate-pulse text-white">
+               <div className="w-20 h-20 bg-white/20 rounded-3xl flex items-center justify-center text-white">
                   <Users size={40} />
                </div>
-               <span className="text-[11px] font-black uppercase tracking-[1em] text-brand-cyan">Registry Loading...</span>
+               <span className="text-[11px] font-black uppercase tracking-[1em] text-white">Registry Loading...</span>
             </div>
           )}
           

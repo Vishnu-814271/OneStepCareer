@@ -346,7 +346,7 @@ export const dataService = {
     saveState(state);
   },
   
-  // Logic to calculate progress
+  // Logic to calculate progress (overall)
   getTrackProgress: (userId: string, language: string): number => {
       const state = getState();
       const user = state.users.find(u => u.id === userId);
@@ -355,24 +355,39 @@ export const dataService = {
       const modules = state.modules.filter(m => m.language === language);
       if (modules.length === 0) return 0;
 
-      // Simplification: A module is "completed" if user has solved at least one problem from it
-      // In a real app, this would be strictly 100% of problems.
-      // We check if user.completedProblems contains any string that roughly matches the module title or ID logic
-      // Since completedProblems stores session labels usually, we need to be careful.
-      // Current updateUserScore adds "EXAM_..." or problem ID. Let's assume Problem ID is stored for accuracy in CodeLab.
-      
-      // Better Logic:
-      // Count how many modules have at least 1 problem solved by the user.
       const problems = state.problems.filter(p => p.language === language && p.difficulty !== 'GRAND');
       if (problems.length === 0) return 100; // No problems means "done"
 
-      // Check how many of these problems are in user.completedProblems
-      // Note: user.completedProblems currently stores "EXAM_timestamp". 
-      // We need to fix CodeLab to store problemId.
-      // Assuming completedProblems includes problemIds now (will update CodeLab).
-      
       const solvedCount = problems.filter(p => user.completedProblems?.includes(p.id)).length;
       return Math.floor((solvedCount / problems.length) * 100);
+  },
+
+  // Check if user is eligible for Grand Test (>= 80% in EVERY module of the track)
+  checkGrandTestEligibility: (userId: string, language: string): boolean => {
+      const state = getState();
+      const user = state.users.find(u => u.id === userId);
+      if (!user) return false;
+
+      const modules = state.modules.filter(m => m.language === language);
+      if (modules.length === 0) return false;
+
+      // Iterate through all modules for this language
+      for (const module of modules) {
+          const moduleProblems = state.problems.filter(p => p.language === language && p.module === module.title && p.difficulty !== 'GRAND');
+          
+          // If a module has problems, we check percentage
+          if (moduleProblems.length > 0) {
+              const solvedCount = moduleProblems.filter(p => user.completedProblems?.includes(p.id)).length;
+              const percentage = (solvedCount / moduleProblems.length) * 100;
+
+              // REQUIREMENT: 80% completion in EVERY module
+              if (percentage < 80) {
+                  return false;
+              }
+          }
+      }
+
+      return true;
   },
 
   updateUserScore: (userId: string, problemId: string, points: number) => {

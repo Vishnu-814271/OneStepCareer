@@ -118,7 +118,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
   }
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] flex">
+    <div className="min-h-screen bg-gradient-to-br from-orange-500 to-amber-600 flex">
       {/* TechNexus Student Sidebar */}
       <aside className="w-20 md:w-80 bg-[#0f172a] flex flex-col sticky top-0 h-screen z-40 text-white shadow-3xl border-r border-slate-800">
         <div className="p-10">
@@ -171,10 +171,10 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
       {/* Main Student Console */}
       <div className="flex-1 flex flex-col min-h-screen relative overflow-hidden">
         {/* Header */}
-        <header className="h-24 bg-white/80 backdrop-blur-xl sticky top-0 z-30 flex items-center justify-between px-12 border-b border-slate-200/60">
+        <header className="h-24 bg-white/10 backdrop-blur-xl sticky top-0 z-30 flex items-center justify-between px-12 border-b border-white/20">
           <div className="flex items-center gap-4">
-             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-             <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">
+             <div className="w-2 h-2 rounded-full bg-white animate-pulse"></div>
+             <h2 className="text-[10px] font-black text-white/80 uppercase tracking-[0.4em]">
                 {selectedModule ? `MODULE: ${selectedModule.title.toUpperCase()}` :
                  selectedCategory ? `COURSE: ${selectedCategory.toUpperCase()}` : 
                  selectedTrack ? `TRACK: ${selectedTrack.toUpperCase()}` : 
@@ -185,10 +185,10 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
           
           <div className="flex items-center gap-6">
              <div className="text-right hidden sm:block">
-                <span className="text-xs font-black text-[#0f172a] uppercase tracking-tight block">{currentUser.name}</span>
-                <span className="text-[9px] text-brand-orange font-black uppercase tracking-widest">Active Student</span>
+                <span className="text-xs font-black text-white uppercase tracking-tight block">{currentUser.name}</span>
+                <span className="text-[9px] text-white/70 font-black uppercase tracking-widest">Active Student</span>
              </div>
-             <div className="w-12 h-12 rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center text-[#0f172a] shadow-sm">
+             <div className="w-12 h-12 rounded-2xl bg-white/20 border border-white/30 flex items-center justify-center text-white shadow-sm">
                 <UserIcon size={20} />
              </div>
           </div>
@@ -202,7 +202,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
                 {/* Back Button */}
                 <button 
                   onClick={handleBackToModules}
-                  className="flex items-center gap-2 text-slate-400 hover:text-brand-cyan transition-colors text-xs font-black uppercase tracking-widest"
+                  className="flex items-center gap-2 text-white/60 hover:text-white transition-colors text-xs font-black uppercase tracking-widest"
                 >
                   <ArrowLeft size={16} /> Return to Modules
                 </button>
@@ -211,13 +211,13 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
                    {/* Left Column: Course Info */}
                    <div className="lg:col-span-2 space-y-10">
                       <div>
-                         <div className="inline-flex items-center gap-2 px-3 py-1 bg-brand-cyan/10 text-brand-cyan rounded-full text-[9px] font-black uppercase tracking-widest mb-6">
+                         <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/20 text-white rounded-full text-[9px] font-black uppercase tracking-widest mb-6 border border-white/20">
                             <Cpu size={12}/> {selectedTrack} / {selectedCategory}
                          </div>
-                         <h1 className="text-6xl font-heading font-black text-[#0f172a] uppercase tracking-tighter mb-6">
+                         <h1 className="text-6xl font-heading font-black text-white uppercase tracking-tighter mb-6">
                             {selectedModule.title}
                          </h1>
-                         <p className="text-lg text-slate-500 font-medium leading-relaxed">
+                         <p className="text-lg text-white/80 font-medium leading-relaxed">
                             {selectedModule.description} <br/>
                             Select a difficulty tier below to begin your assessment.
                          </p>
@@ -331,19 +331,19 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
              <div className="max-w-7xl mx-auto animate-fade-in space-y-12">
                <button 
                   onClick={handleBackToCategories}
-                  className="flex items-center gap-2 text-slate-400 hover:text-brand-cyan transition-colors text-xs font-black uppercase tracking-widest"
+                  className="flex items-center gap-2 text-white/60 hover:text-white transition-colors text-xs font-black uppercase tracking-widest"
                >
                   <ArrowLeft size={16} /> Return to {selectedTrack} Courses
                </button>
 
                <div>
-                   <div className="inline-flex items-center gap-2 px-3 py-1 bg-brand-cyan/10 text-brand-cyan rounded-full text-[9px] font-black uppercase tracking-widest mb-4">
+                   <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/20 text-white rounded-full text-[9px] font-black uppercase tracking-widest mb-4 border border-white/20">
                      <Target size={12}/> Topic Modules
                    </div>
-                   <h1 className="text-5xl md:text-6xl font-heading font-black text-[#0f172a] tracking-tighter mb-4 leading-none uppercase">
+                   <h1 className="text-5xl md:text-6xl font-heading font-black text-white tracking-tighter mb-4 leading-none uppercase">
                      {selectedCategory}
                    </h1>
-                   <p className="text-slate-500 font-medium leading-relaxed italic text-lg max-w-2xl">
+                   <p className="text-white/80 font-medium leading-relaxed italic text-lg max-w-2xl">
                      Select a specialized topic to begin your deep dive.
                    </p>
                </div>
@@ -369,10 +369,10 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
                     </div>
                  ))}
                  {dataService.getModulesByCategory(selectedTrack, selectedCategory).length === 0 && (
-                    <div className="col-span-full py-20 text-center border-2 border-dashed border-slate-200 rounded-[32px]">
-                       <AlertCircle size={48} className="mx-auto text-slate-300 mb-4"/>
-                       <p className="text-slate-400 font-medium">No topics found for this category yet.</p>
-                       <p className="text-xs text-slate-300 uppercase tracking-widest mt-2">Contact Admin to add curriculum.</p>
+                    <div className="col-span-full py-20 text-center border-2 border-dashed border-white/20 rounded-[32px] bg-white/5">
+                       <AlertCircle size={48} className="mx-auto text-white/50 mb-4"/>
+                       <p className="text-white font-medium">No topics found for this category yet.</p>
+                       <p className="text-xs text-white/60 uppercase tracking-widest mt-2">Contact Admin to add curriculum.</p>
                     </div>
                  )}
                </div>
@@ -384,30 +384,30 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
              <div className="max-w-7xl mx-auto animate-fade-in space-y-12">
                <button 
                   onClick={handleBackToDashboard}
-                  className="flex items-center gap-2 text-slate-400 hover:text-brand-cyan transition-colors text-xs font-black uppercase tracking-widest"
+                  className="flex items-center gap-2 text-white/60 hover:text-white transition-colors text-xs font-black uppercase tracking-widest"
                >
                   <ArrowLeft size={16} /> Return to Academy
                </button>
 
                <div>
-                   <div className="inline-flex items-center gap-2 px-3 py-1 bg-brand-cyan/10 text-brand-cyan rounded-full text-[9px] font-black uppercase tracking-widest mb-4">
+                   <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/20 text-white rounded-full text-[9px] font-black uppercase tracking-widest mb-4 border border-white/20">
                      <Library size={12}/> Learning Path
                    </div>
-                   <h1 className="text-5xl md:text-6xl font-heading font-black text-[#0f172a] tracking-tighter mb-4 leading-none uppercase">
-                     {selectedTrack} <span className="text-brand-cyan">Courses</span>
+                   <h1 className="text-5xl md:text-6xl font-heading font-black text-white tracking-tighter mb-4 leading-none uppercase">
+                     {selectedTrack} <span className="text-white/70">Courses</span>
                    </h1>
-                   <p className="text-slate-500 font-medium leading-relaxed italic text-lg max-w-2xl">
+                   <p className="text-white/80 font-medium leading-relaxed italic text-lg max-w-2xl">
                      Complete all modules to unlock the Final Grand Assessment and Capstone Project.
                    </p>
                    {/* Progress Indicator */}
                    <div className="mt-6 max-w-md">
-                      <div className="flex justify-between text-xs font-black uppercase tracking-widest mb-2 text-slate-500">
+                      <div className="flex justify-between text-xs font-black uppercase tracking-widest mb-2 text-white/70">
                           <span>Track Progress</span>
                           <span>{dataService.getTrackProgress(currentUser.id, selectedTrack)}% Completed</span>
                       </div>
-                      <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+                      <div className="h-2 bg-black/20 rounded-full overflow-hidden">
                           <div 
-                            className="h-full bg-brand-cyan transition-all duration-1000" 
+                            className="h-full bg-white transition-all duration-1000" 
                             style={{width: `${dataService.getTrackProgress(currentUser.id, selectedTrack)}%`}}
                           ></div>
                       </div>
@@ -446,8 +446,8 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
 
                  {/* GRAND TEST CARD */}
                  {(() => {
-                     const progress = dataService.getTrackProgress(currentUser.id, selectedTrack);
-                     const isUnlocked = progress >= 100;
+                     // Check specific requirement: 80% in every module
+                     const isUnlocked = dataService.checkGrandTestEligibility(currentUser.id, selectedTrack);
                      const isCompleted = currentUser.completedGrandTests?.includes(selectedTrack);
                      
                      return (
@@ -465,7 +465,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
                                </div>
                                <h3 className={`text-2xl font-heading font-black mb-3 uppercase tracking-tight ${isUnlocked ? 'text-amber-700' : 'text-slate-500'}`}>Grand Assessment</h3>
                                <p className="text-slate-400 text-sm font-medium mb-8">
-                                  {isCompleted ? 'Assessment Passed. Project Access Granted.' : isUnlocked ? 'Final verified examination. Pass to unlock Capstone Project.' : 'Complete all modules to unlock this examination.'}
+                                  {isCompleted ? 'Assessment Passed. Project Access Granted.' : isUnlocked ? 'Final verified examination. Pass to unlock Capstone Project.' : 'Achieve 80% completion in every module to unlock.'}
                                </p>
                                <div className={`flex items-center justify-between pt-6 border-t mt-auto ${isUnlocked ? 'border-amber-100' : 'border-slate-100'}`}>
                                    <span className={`text-[10px] font-black uppercase tracking-widest ${isUnlocked ? 'text-amber-600' : 'text-slate-400'}`}>
@@ -520,10 +520,10 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
                  })()}
 
                  {dataService.getCategoriesByLanguage(selectedTrack).length === 0 && (
-                    <div className="col-span-full py-20 text-center border-2 border-dashed border-slate-200 rounded-[32px]">
-                       <AlertCircle size={48} className="mx-auto text-slate-300 mb-4"/>
-                       <p className="text-slate-400 font-medium">No courses found for {selectedTrack}.</p>
-                       <p className="text-xs text-slate-300 uppercase tracking-widest mt-2">Contact Admin to add curriculum.</p>
+                    <div className="col-span-full py-20 text-center border-2 border-dashed border-white/20 rounded-[32px] bg-white/5">
+                       <AlertCircle size={48} className="mx-auto text-white/50 mb-4"/>
+                       <p className="text-white font-medium">No courses found for {selectedTrack}.</p>
+                       <p className="text-xs text-white/60 uppercase tracking-widest mt-2">Contact Admin to add curriculum.</p>
                     </div>
                  )}
                </div>
@@ -534,11 +534,11 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
           {activeView === 'curriculum' && !selectedTrack && (
             <div className="space-y-12 animate-fade-in max-w-7xl mx-auto">
               <div className="max-w-3xl">
-                <div className="inline-flex items-center gap-2 px-3 py-1 bg-brand-cyan/10 text-brand-cyan rounded-full text-[9px] font-black uppercase tracking-widest mb-4">
+                <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/20 text-white rounded-full text-[9px] font-black uppercase tracking-widest mb-4 border border-white/20">
                   <LayoutGrid size={12}/> Academic Tracks
                 </div>
-                <h1 className="text-5xl md:text-6xl font-heading font-black text-[#0f172a] tracking-tighter mb-4 leading-none uppercase">Select Your <span className="text-brand-cyan">Academy</span></h1>
-                <p className="text-slate-500 font-medium leading-relaxed italic text-lg">
+                <h1 className="text-5xl md:text-6xl font-heading font-black text-white tracking-tighter mb-4 leading-none uppercase">Select Your <span className="text-white/80">Academy</span></h1>
+                <p className="text-white/80 font-medium leading-relaxed italic text-lg">
                   Access industrial-grade logic units and start building your technical profile today.
                 </p>
               </div>
@@ -588,8 +588,8 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
           {activeView === 'comms' && (
             <div className="h-[calc(100vh-250px)] animate-fade-in max-w-5xl mx-auto flex flex-col">
                <div className="mb-8">
-                  <h1 className="text-4xl font-heading font-black text-[#0f172a] uppercase tracking-tighter">Student <span className="text-brand-orange">Community</span></h1>
-                  <p className="text-slate-500 font-medium">Connect with other learners and share knowledge.</p>
+                  <h1 className="text-4xl font-heading font-black text-white uppercase tracking-tighter">Student <span className="text-white/80">Community</span></h1>
+                  <p className="text-white/80 font-medium">Connect with other learners and share knowledge.</p>
                </div>
                <div className="flex-1">
                  <CommunityChat currentUser={currentUser} />

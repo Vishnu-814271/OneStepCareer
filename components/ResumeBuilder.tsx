@@ -447,13 +447,13 @@ const ResumeBuilder: React.FC<ResumeBuilderProps> = ({ currentUser }) => {
       <div className="w-full lg:w-5/12 flex flex-col gap-8">
          {/* Header area */}
          <div className="space-y-3">
-             <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-brand-orange/10 text-brand-orange rounded-full text-[10px] font-black uppercase tracking-widest border border-brand-orange/20">
+             <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-white/20 text-white rounded-full text-[10px] font-black uppercase tracking-widest border border-white/20">
                 <Sparkles size={12}/> AI Powered Engine
              </div>
-             <h1 className="text-4xl font-heading font-black text-slate-800 uppercase tracking-tighter">
-                ATS <span className="text-brand-cyan">Resume</span>
+             <h1 className="text-4xl font-heading font-black text-white uppercase tracking-tighter">
+                ATS <span className="text-white/80">Resume</span>
              </h1>
-             <p className="text-slate-500 font-medium text-sm leading-relaxed">
+             <p className="text-white/80 font-medium text-sm leading-relaxed">
                 Build a professional, ATS-friendly resume in minutes. Paste a job description to auto-optimize your profile.
              </p>
          </div>
