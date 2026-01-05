@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
-import { User, Problem, Difficulty } from '../types';
+import { User, Problem, Difficulty, CourseModule } from '../types';
 import CodeLab from './CodeLab';
 import { dataService } from '../services/dataService';
-import { Terminal, BookOpen, ChevronRight, Trophy, User as UserIcon, LogOut, ShieldAlert, Zap, Target, Globe, MessageSquare, Clock, ArrowLeft, Layers, CheckCircle, Play, Cpu, AlertCircle, Signal, Lock, Briefcase, FileText } from 'lucide-react';
+import { Terminal, BookOpen, ChevronRight, Trophy, User as UserIcon, LogOut, ShieldAlert, Zap, Target, Globe, MessageSquare, Clock, ArrowLeft, Layers, CheckCircle, Play, Cpu, AlertCircle, Signal, Lock, Briefcase, FileText, LayoutGrid, Database, Binary, Code, Library } from 'lucide-react';
 import CommunityChat from './CommunityChat';
 import ResumeBuilder from './ResumeBuilder';
 
@@ -19,6 +19,8 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
   
   // State for Navigation Flow
   const [selectedTrack, setSelectedTrack] = useState<string | null>(null); // The selected language (e.g., 'Python')
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null); // The selected category (e.g., 'Basic Python')
+  const [selectedModule, setSelectedModule] = useState<CourseModule | null>(null); // The selected module
   const [selectedLevel, setSelectedLevel] = useState<Difficulty | null>(null);
   const [isExamActive, setIsExamActive] = useState(false); // Whether the actual CodeLab is running
   
@@ -29,16 +31,28 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
      if (freshUser) setCurrentUser(freshUser);
   }, [isExamActive, activeView]);
 
-  // Filter problems for the selected track and level to pass to CodeLab
-  const trackProblems = selectedTrack && selectedLevel
-    ? dataService.getProblems().filter(p => p.language === selectedTrack && p.difficulty === selectedLevel)
+  // Filter problems for the selected track, module and level
+  const trackProblems = selectedTrack && selectedLevel && selectedModule
+    ? dataService.getProblems().filter(p => p.language === selectedTrack && p.module === selectedModule.title && p.difficulty === selectedLevel)
     : [];
 
   const handleTrackSelect = (lang: string) => {
     setSelectedTrack(lang);
+    setSelectedCategory(null);
+    setSelectedModule(null);
     setSelectedLevel(null);
     setIsExamActive(false);
   };
+
+  const handleCategorySelect = (category: string) => {
+    setSelectedCategory(category);
+    setSelectedModule(null);
+  }
+
+  const handleModuleSelect = (module: CourseModule) => {
+     setSelectedModule(module);
+     setSelectedLevel(null);
+  }
 
   const handleStartExam = () => {
     if (selectedLevel) {
@@ -46,17 +60,42 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
     }
   };
 
+  const handleBackToModules = () => {
+     setSelectedModule(null);
+     setSelectedLevel(null);
+  };
+
+  const handleBackToCategories = () => {
+     setSelectedCategory(null);
+     setSelectedModule(null);
+  };
+
   const handleBackToDashboard = () => {
     setSelectedTrack(null);
+    setSelectedCategory(null);
+    setSelectedModule(null);
     setSelectedLevel(null);
     setIsExamActive(false);
   };
 
-  // Helper to get problem count for display
+  // Helper to get problem count for level within a module
   const getProblemCountForLevel = (level: Difficulty) => {
-    if (!selectedTrack) return 0;
-    return dataService.getProblems().filter(p => p.language === selectedTrack && p.difficulty === level).length;
+    if (!selectedTrack || !selectedModule) return 0;
+    return dataService.getProblems().filter(p => p.language === selectedTrack && p.module === selectedModule.title && p.difficulty === level).length;
   };
+
+  // Icon Helper
+  const getModuleIcon = (iconName?: string) => {
+     switch(iconName) {
+        case 'Terminal': return <Terminal size={32} />;
+        case 'Cpu': return <Cpu size={32} />;
+        case 'Database': return <Database size={32} />;
+        case 'Binary': return <Binary size={32} />;
+        case 'Layers': return <Layers size={32} />;
+        case 'Code': return <Code size={32} />;
+        default: return <BookOpen size={32} />;
+     }
+  }
 
   // 1. RENDER: EXAM MODE (CodeLab)
   if (isExamActive && selectedTrack && selectedLevel) {
@@ -80,9 +119,9 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
         </div>
 
         <nav className="flex-1 p-8 space-y-4 mt-2">
-          <button onClick={() => { setActiveView('curriculum'); setSelectedTrack(null); }} className={`w-full p-5 rounded-2xl flex items-center gap-4 transition-all group ${activeView === 'curriculum' ? 'bg-brand-cyan text-white shadow-lg shadow-brand-cyan/20' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
+          <button onClick={() => { setActiveView('curriculum'); setSelectedTrack(null); setSelectedCategory(null); setSelectedModule(null); }} className={`w-full p-5 rounded-2xl flex items-center gap-4 transition-all group ${activeView === 'curriculum' ? 'bg-brand-cyan text-white shadow-lg shadow-brand-cyan/20' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
             <BookOpen size={20} />
-            <span className="hidden md:block font-black text-[11px] uppercase tracking-[0.2em]">My Learning Paths</span>
+            <span className="hidden md:block font-black text-[11px] uppercase tracking-[0.2em]">Academy</span>
           </button>
           
           <button onClick={() => { setActiveView('career'); setSelectedTrack(null); }} className={`w-full p-5 rounded-2xl flex items-center gap-4 transition-all group ${activeView === 'career' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
@@ -121,8 +160,10 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
           <div className="flex items-center gap-4">
              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
              <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">
-                {selectedTrack ? `COURSE PROTOCOL: ${selectedTrack.toUpperCase()}` : 
-                 activeView === 'curriculum' ? 'Learning Dashboard' : 
+                {selectedModule ? `MODULE: ${selectedModule.title.toUpperCase()}` :
+                 selectedCategory ? `COURSE: ${selectedCategory.toUpperCase()}` : 
+                 selectedTrack ? `TRACK: ${selectedTrack.toUpperCase()}` : 
+                 activeView === 'curriculum' ? 'Academy Dashboard' : 
                  activeView === 'career' ? 'ATS Optimization Module' : 'Student Chat'}
              </h2>
           </div>
@@ -140,15 +181,15 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
 
         <main className="p-12 flex-1 overflow-y-auto custom-scrollbar">
           
-          {/* 2. RENDER: COURSE DETAIL VIEW (PRE-FLIGHT) */}
-          {activeView === 'curriculum' && selectedTrack && (
+          {/* 2. RENDER: DIFFICULTY SELECTION VIEW */}
+          {activeView === 'curriculum' && selectedTrack && selectedCategory && selectedModule && (
              <div className="max-w-6xl mx-auto animate-fade-in space-y-12">
                 {/* Back Button */}
                 <button 
-                  onClick={handleBackToDashboard}
+                  onClick={handleBackToModules}
                   className="flex items-center gap-2 text-slate-400 hover:text-brand-cyan transition-colors text-xs font-black uppercase tracking-widest"
                 >
-                  <ArrowLeft size={16} /> Return to Course Grid
+                  <ArrowLeft size={16} /> Return to Modules
                 </button>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
@@ -156,13 +197,13 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
                    <div className="lg:col-span-2 space-y-10">
                       <div>
                          <div className="inline-flex items-center gap-2 px-3 py-1 bg-brand-cyan/10 text-brand-cyan rounded-full text-[9px] font-black uppercase tracking-widest mb-6">
-                            <Cpu size={12}/> Industrial Certification Track
+                            <Cpu size={12}/> {selectedTrack} / {selectedCategory}
                          </div>
                          <h1 className="text-6xl font-heading font-black text-[#0f172a] uppercase tracking-tighter mb-6">
-                            {selectedTrack} <span className="text-slate-300">Mastery</span>
+                            {selectedModule.title}
                          </h1>
                          <p className="text-lg text-slate-500 font-medium leading-relaxed">
-                            This comprehensive assessment evaluates your ability to implement {selectedTrack} logic in a simulated industrial environment. 
+                            {selectedModule.description} <br/>
                             Select a difficulty tier below to begin your assessment.
                          </p>
                       </div>
@@ -179,8 +220,8 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
 
                             {[
                                 { id: 'L0', label: 'Fundamentals (Easy)', desc: "Variable scope, data types, and basic control structures." },
-                                { id: 'L1', label: 'Algorithmic Logic (Medium)', desc: "Data manipulation, loops, and functional efficiency." },
-                                { id: 'L2', label: 'Industrial Application (Hard)', desc: "Edge-case handling, memory optimization, and complex logic." }
+                                { id: 'L1', label: 'Intermediate (Medium)', desc: "Data manipulation, loops, and functional efficiency." },
+                                { id: 'L2', label: 'Advanced Application (Hard)', desc: "Edge-case handling, memory optimization, and complex logic." }
                             ].map((levelItem) => {
                                const isSelected = selectedLevel === levelItem.id;
                                return (
@@ -225,7 +266,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
                                      <div>
                                         <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-2">Selected Tier</span>
                                         <div className={`text-3xl font-black uppercase tracking-tight mb-1 ${selectedLevel === 'L0' ? 'text-emerald-400' : selectedLevel === 'L1' ? 'text-brand-cyan' : 'text-brand-orange'}`}>
-                                           {selectedLevel === 'L0' ? 'Fundamentals' : selectedLevel === 'L1' ? 'Algorithmic' : 'Industrial'}
+                                           {selectedLevel === 'L0' ? 'Basic' : selectedLevel === 'L1' ? 'Intermediate' : 'Advanced'}
                                         </div>
                                         <div className="text-[10px] font-bold text-white uppercase tracking-[0.2em] opacity-60">Level {selectedLevel.replace('L','')} Active</div>
                                      </div>
@@ -249,13 +290,6 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
                                     {selectedLevel || 'Pending'}
                                   </span>
                                </div>
-                               <div className="flex items-center justify-between text-sm pb-1">
-                                  <span className="text-slate-400 font-medium">Est. Time</span>
-                                  <span className="font-bold text-white flex items-center gap-2">
-                                     <Clock size={14} className="text-brand-cyan"/>
-                                     {selectedLevel === 'L0' ? '45 MIN' : selectedLevel === 'L1' ? '60 MIN' : selectedLevel === 'L2' ? '90 MIN' : '--'}
-                                  </span>
-                               </div>
                             </div>
                          </div>
 
@@ -272,27 +306,133 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
                            {selectedLevel ? <Play size={18} fill="currentColor" className="group-hover:scale-110 transition-transform" /> : <Lock size={16} />}
                          </button>
                       </div>
-
-                      <div className="bg-orange-50 border border-brand-orange/20 rounded-3xl p-6 flex gap-4 items-start">
-                         <AlertCircle className="text-brand-orange shrink-0" size={20} />
-                         <div className="text-xs text-brand-orange/80 font-medium leading-relaxed">
-                            <strong className="block text-brand-orange uppercase tracking-widest mb-1">Pre-Flight Check</strong>
-                            Ensure your browser is maximized. Switching tabs during the exam will trigger security warnings and may lead to session termination.
-                         </div>
-                      </div>
                    </div>
                 </div>
              </div>
           )}
 
-          {/* 3. RENDER: CURRICULUM GRID (DEFAULT) */}
+          {/* 3. RENDER: MODULE SELECTION VIEW */}
+          {activeView === 'curriculum' && selectedTrack && selectedCategory && !selectedModule && (
+             <div className="max-w-7xl mx-auto animate-fade-in space-y-12">
+               <button 
+                  onClick={handleBackToCategories}
+                  className="flex items-center gap-2 text-slate-400 hover:text-brand-cyan transition-colors text-xs font-black uppercase tracking-widest"
+               >
+                  <ArrowLeft size={16} /> Return to {selectedTrack} Courses
+               </button>
+
+               <div>
+                   <div className="inline-flex items-center gap-2 px-3 py-1 bg-brand-cyan/10 text-brand-cyan rounded-full text-[9px] font-black uppercase tracking-widest mb-4">
+                     <Target size={12}/> Topic Modules
+                   </div>
+                   <h1 className="text-5xl md:text-6xl font-heading font-black text-[#0f172a] tracking-tighter mb-4 leading-none uppercase">
+                     {selectedCategory}
+                   </h1>
+                   <p className="text-slate-500 font-medium leading-relaxed italic text-lg max-w-2xl">
+                     Select a specialized topic to begin your deep dive.
+                   </p>
+               </div>
+
+               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                 {dataService.getModulesByCategory(selectedTrack, selectedCategory).map((mod) => (
+                    <div 
+                      key={mod.id} 
+                      onClick={() => handleModuleSelect(mod)}
+                      className="group bg-white p-8 rounded-[32px] border border-slate-200 hover:border-brand-cyan/30 hover:shadow-2xl hover:-translate-y-1 transition-all cursor-pointer flex flex-col h-full"
+                    >
+                       <div className="w-16 h-16 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-brand-cyan group-hover:text-white transition-colors mb-6">
+                          {getModuleIcon(mod.icon)}
+                       </div>
+                       <h3 className="text-xl font-heading font-black text-[#0f172a] mb-3 uppercase tracking-tight">{mod.title}</h3>
+                       <p className="text-slate-500 text-sm leading-relaxed mb-8 flex-1">{mod.description}</p>
+                       <div className="flex items-center justify-between pt-6 border-t border-slate-50 mt-auto">
+                          <span className="text-[10px] font-black text-brand-orange uppercase tracking-widest">Start Topic</span>
+                          <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 group-hover:text-brand-cyan">
+                             <ChevronRight size={16} />
+                          </div>
+                       </div>
+                    </div>
+                 ))}
+                 {dataService.getModulesByCategory(selectedTrack, selectedCategory).length === 0 && (
+                    <div className="col-span-full py-20 text-center border-2 border-dashed border-slate-200 rounded-[32px]">
+                       <AlertCircle size={48} className="mx-auto text-slate-300 mb-4"/>
+                       <p className="text-slate-400 font-medium">No topics found for this category yet.</p>
+                       <p className="text-xs text-slate-300 uppercase tracking-widest mt-2">Contact Admin to add curriculum.</p>
+                    </div>
+                 )}
+               </div>
+             </div>
+          )}
+
+          {/* 4. RENDER: CATEGORY SELECTION VIEW */}
+          {activeView === 'curriculum' && selectedTrack && !selectedCategory && (
+             <div className="max-w-7xl mx-auto animate-fade-in space-y-12">
+               <button 
+                  onClick={handleBackToDashboard}
+                  className="flex items-center gap-2 text-slate-400 hover:text-brand-cyan transition-colors text-xs font-black uppercase tracking-widest"
+               >
+                  <ArrowLeft size={16} /> Return to Academy
+               </button>
+
+               <div>
+                   <div className="inline-flex items-center gap-2 px-3 py-1 bg-brand-cyan/10 text-brand-cyan rounded-full text-[9px] font-black uppercase tracking-widest mb-4">
+                     <Library size={12}/> Learning Path
+                   </div>
+                   <h1 className="text-5xl md:text-6xl font-heading font-black text-[#0f172a] tracking-tighter mb-4 leading-none uppercase">
+                     {selectedTrack} <span className="text-brand-cyan">Courses</span>
+                   </h1>
+                   <p className="text-slate-500 font-medium leading-relaxed italic text-lg max-w-2xl">
+                     Select a course category to view available modules and topics.
+                   </p>
+               </div>
+
+               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                 {dataService.getCategoriesByLanguage(selectedTrack).map((cat, idx) => (
+                    <div 
+                      key={idx} 
+                      onClick={() => handleCategorySelect(cat)}
+                      className="group bg-white p-10 rounded-[40px] border border-slate-200 hover:border-brand-cyan/30 hover:shadow-2xl hover:-translate-y-1 transition-all cursor-pointer flex flex-col h-full relative overflow-hidden"
+                    >
+                       <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
+                          <BookOpen size={120} className="rotate-12"/>
+                       </div>
+                       
+                       <div className="relative z-10">
+                          <div className="w-16 h-16 rounded-2xl bg-brand-blue/5 border border-brand-blue/10 flex items-center justify-center text-brand-blue group-hover:bg-brand-blue group-hover:text-white transition-colors mb-6">
+                              <BookOpen size={28} />
+                          </div>
+                          <h3 className="text-2xl font-heading font-black text-[#0f172a] mb-3 uppercase tracking-tight">{cat}</h3>
+                          <p className="text-slate-400 text-sm font-medium mb-8">
+                             {dataService.getModulesByCategory(selectedTrack, cat).length} Modules available
+                          </p>
+                          <div className="flex items-center justify-between pt-6 border-t border-slate-50 mt-auto">
+                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-brand-cyan transition-colors">Explore Course</span>
+                              <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 group-hover:bg-brand-cyan group-hover:text-white transition-all shadow-sm">
+                                <ChevronRight size={20} />
+                              </div>
+                          </div>
+                       </div>
+                    </div>
+                 ))}
+                 {dataService.getCategoriesByLanguage(selectedTrack).length === 0 && (
+                    <div className="col-span-full py-20 text-center border-2 border-dashed border-slate-200 rounded-[32px]">
+                       <AlertCircle size={48} className="mx-auto text-slate-300 mb-4"/>
+                       <p className="text-slate-400 font-medium">No courses found for {selectedTrack}.</p>
+                       <p className="text-xs text-slate-300 uppercase tracking-widest mt-2">Contact Admin to add curriculum.</p>
+                    </div>
+                 )}
+               </div>
+             </div>
+          )}
+
+          {/* 5. RENDER: TRACK SELECTION (DEFAULT) */}
           {activeView === 'curriculum' && !selectedTrack && (
             <div className="space-y-12 animate-fade-in max-w-7xl mx-auto">
               <div className="max-w-3xl">
                 <div className="inline-flex items-center gap-2 px-3 py-1 bg-brand-cyan/10 text-brand-cyan rounded-full text-[9px] font-black uppercase tracking-widest mb-4">
-                  <Target size={12}/> Your Academic Journey
+                  <LayoutGrid size={12}/> Academic Tracks
                 </div>
-                <h1 className="text-5xl md:text-6xl font-heading font-black text-[#0f172a] tracking-tighter mb-4 leading-none uppercase">Select Your <span className="text-brand-cyan">Course</span></h1>
+                <h1 className="text-5xl md:text-6xl font-heading font-black text-[#0f172a] tracking-tighter mb-4 leading-none uppercase">Select Your <span className="text-brand-cyan">Academy</span></h1>
                 <p className="text-slate-500 font-medium leading-relaxed italic text-lg">
                   Access industrial-grade logic units and start building your technical profile today.
                 </p>
@@ -317,7 +457,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
                         <div className="mt-auto flex items-center justify-between pt-8 border-t border-slate-100">
                             <div className="flex items-center gap-2">
                               <Zap size={14} className="text-brand-orange" />
-                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">View Syllabus</span>
+                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">View Courses</span>
                             </div>
                             <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 group-hover:bg-brand-cyan group-hover:text-white transition-all shadow-sm">
                               <ChevronRight size={20} />
@@ -330,12 +470,12 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
             </div>
           )}
           
-          {/* 4. RENDER: RESUME BUILDER */}
+          {/* 6. RENDER: RESUME BUILDER */}
           {activeView === 'career' && (
              <ResumeBuilder currentUser={currentUser} />
           )}
 
-          {/* 5. RENDER: COMMUNITY CHAT */}
+          {/* 7. RENDER: COMMUNITY CHAT */}
           {activeView === 'comms' && (
             <div className="h-[calc(100vh-250px)] animate-fade-in max-w-5xl mx-auto flex flex-col">
                <div className="mb-8">

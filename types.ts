@@ -88,6 +88,15 @@ export interface Course {
   duration: string;
 }
 
+export interface CourseModule {
+  id: string;
+  title: string;
+  language: string;
+  category: string; // Added category for hierarchy
+  description: string;
+  icon?: string;
+}
+
 export interface ChatMessage {
   id: string;
   text: string;
