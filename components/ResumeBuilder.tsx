@@ -243,7 +243,6 @@ const ResumeBuilder: React.FC<ResumeBuilderProps> = ({ currentUser }) => {
     </div>
   );
 
-  // Added missing ClassicTemplate
   const ClassicTemplate = ({ data }: { data: ResumeData }) => (
     <div className="w-[210mm] min-h-[297mm] bg-white text-slate-900 p-16 flex flex-col mx-auto shadow-2xl">
        <header className="text-center border-b-2 border-slate-900 pb-8 mb-8">
@@ -298,7 +297,6 @@ const ResumeBuilder: React.FC<ResumeBuilderProps> = ({ currentUser }) => {
     </div>
   );
 
-  // Added missing MinimalTemplate
   const MinimalTemplate = ({ data }: { data: ResumeData }) => (
     <div className="w-[210mm] min-h-[297mm] bg-white text-slate-700 p-20 flex flex-col mx-auto shadow-2xl">
        <header className="mb-12">
@@ -348,29 +346,29 @@ const ResumeBuilder: React.FC<ResumeBuilderProps> = ({ currentUser }) => {
   );
 
   return (
-    <div className="h-full flex gap-0 font-sans overflow-hidden bg-white">
+    <div className="h-full flex flex-col lg:flex-row gap-0 font-sans overflow-hidden bg-white">
       
-      {/* LEFT: Master Navigation Deck */}
-      <div className="w-64 shrink-0 flex flex-col gap-4 bg-slate-50 border-r border-slate-200 p-6 h-full overflow-y-auto custom-scrollbar">
+      {/* LEFT: Master Navigation Deck (Top on mobile, Left on Desktop) */}
+      <div className="w-full lg:w-64 shrink-0 flex flex-col gap-4 bg-slate-50 border-b lg:border-b-0 lg:border-r border-slate-200 p-4 lg:p-6 h-auto lg:h-full overflow-y-auto custom-scrollbar">
          <div className="space-y-6">
-            <div className="space-y-1">
+            <div className="space-y-1 hidden lg:block">
                <h3 className="text-[10px] font-black text-slate-800 uppercase tracking-widest">Builder Deck</h3>
                <p className="text-[8px] text-slate-400 font-bold uppercase tracking-widest">Global Protocol v2.5</p>
             </div>
-            <nav className="space-y-1">
+            <nav className="flex lg:flex-col gap-2 overflow-x-auto pb-2 lg:pb-0">
                {navigationSections.map((section) => {
                   const Icon = section.icon;
                   return (
                      <button 
                         key={section.id} 
                         onClick={() => scrollToSection(section.id as SectionType)}
-                        className="w-full flex items-center justify-between p-3 rounded-xl transition-all text-slate-500 hover:bg-white hover:shadow-sm hover:text-cyan-500 group"
+                        className="flex-shrink-0 w-auto lg:w-full flex items-center justify-between p-3 rounded-xl transition-all text-slate-500 hover:bg-white hover:shadow-sm hover:text-cyan-500 group border lg:border-0 border-slate-200 bg-white lg:bg-transparent"
                      >
                         <div className="flex items-center gap-3">
                            <Icon size={16} />
                            <span className="text-[10px] font-bold uppercase tracking-widest">{section.label}</span>
                         </div>
-                        <ChevronRight size={12} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <ChevronRight size={12} className="opacity-0 group-hover:opacity-100 transition-opacity hidden lg:block" />
                      </button>
                   );
                })}
@@ -378,7 +376,7 @@ const ResumeBuilder: React.FC<ResumeBuilderProps> = ({ currentUser }) => {
          </div>
 
          {/* AI Job Tunneler - Floating Style */}
-         <div className="mt-auto pt-6 border-t border-slate-200 space-y-4">
+         <div className="mt-auto pt-6 border-t border-slate-200 space-y-4 hidden lg:block">
             <div className="flex items-center gap-3">
                <div className="p-2 bg-cyan-500/10 rounded-lg text-cyan-500"><Target size={18} /></div>
                <span className="text-[10px] font-black uppercase tracking-widest text-slate-800">AI Tunneler</span>
@@ -401,19 +399,19 @@ const ResumeBuilder: React.FC<ResumeBuilderProps> = ({ currentUser }) => {
       </div>
 
       {/* CENTER: Unified Scrollable Editor */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar bg-white" ref={formRef}>
-         <div className="max-w-3xl mx-auto py-16 px-10 space-y-24">
+      <div className="flex-1 overflow-y-auto custom-scrollbar bg-white order-last lg:order-none" ref={formRef}>
+         <div className="max-w-3xl mx-auto py-8 lg:py-16 px-6 lg:px-10 space-y-16 lg:space-y-24">
             
             {/* 1. IDENTITY SECTION */}
             <div id="section-PERSONAL" className="space-y-10 animate-in slide-in-from-bottom-4 duration-500">
                <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-900 border border-slate-200"><UserIcon size={20}/></div>
                   <div>
-                    <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Identity Matrix</h2>
+                    <h2 className="text-xl lg:text-2xl font-black text-slate-900 uppercase tracking-tight">Identity Matrix</h2>
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Verified Candidate Registry</p>
                   </div>
                </div>
-               <div className="grid grid-cols-2 gap-6">
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Legal Full Name</label>
                      <input type="text" placeholder="John Doe" value={resumeData.personalInfo.fullName} onChange={(e) => handlePersonalChange('fullName', e.target.value)} className={inputClass} />
@@ -458,7 +456,7 @@ const ResumeBuilder: React.FC<ResumeBuilderProps> = ({ currentUser }) => {
                <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-900 border border-slate-200"><FileText size={20}/></div>
                   <div>
-                    <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Summary Protocol</h2>
+                    <h2 className="text-xl lg:text-2xl font-black text-slate-900 uppercase tracking-tight">Summary Protocol</h2>
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Strategic Professional Baseline</p>
                   </div>
                </div>
@@ -474,7 +472,7 @@ const ResumeBuilder: React.FC<ResumeBuilderProps> = ({ currentUser }) => {
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-900 border border-slate-200"><ShieldCheck size={20}/></div>
                     <div>
-                      <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Operational History</h2>
+                      <h2 className="text-xl lg:text-2xl font-black text-slate-900 uppercase tracking-tight">Operational History</h2>
                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Verified Professional Log</p>
                     </div>
                   </div>
@@ -482,9 +480,9 @@ const ResumeBuilder: React.FC<ResumeBuilderProps> = ({ currentUser }) => {
                </div>
                <div className="space-y-8">
                   {resumeData.experience.map((exp) => (
-                     <div key={exp.id} className="p-8 bg-slate-50 border border-slate-200 rounded-[32px] relative group space-y-6 shadow-sm">
-                        <button onClick={() => removeItem('experience', exp.id)} className="absolute top-8 right-8 p-2 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"><Trash2 size={16}/></button>
-                        <div className="grid grid-cols-2 gap-4">
+                     <div key={exp.id} className="p-6 lg:p-8 bg-slate-50 border border-slate-200 rounded-[32px] relative group space-y-6 shadow-sm">
+                        <button onClick={() => removeItem('experience', exp.id)} className="absolute top-8 right-8 p-2 text-slate-300 hover:text-red-500 lg:opacity-0 group-hover:opacity-100 transition-all"><Trash2 size={16}/></button>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                            <input type="text" placeholder="Designation / Role" value={exp.role} onChange={(e) => handleArrayChange('experience', exp.id, 'role', e.target.value)} className={inputClass} />
                            <input type="text" placeholder="Entity (Company)" value={exp.company} onChange={(e) => handleArrayChange('experience', exp.id, 'company', e.target.value)} className={inputClass} />
                         </div>
@@ -504,7 +502,7 @@ const ResumeBuilder: React.FC<ResumeBuilderProps> = ({ currentUser }) => {
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-900 border border-slate-200"><GraduationCap size={20}/></div>
                     <div>
-                      <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Academic Registry</h2>
+                      <h2 className="text-xl lg:text-2xl font-black text-slate-900 uppercase tracking-tight">Academic Registry</h2>
                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Formal Certification Log</p>
                     </div>
                   </div>
@@ -512,10 +510,10 @@ const ResumeBuilder: React.FC<ResumeBuilderProps> = ({ currentUser }) => {
                </div>
                <div className="space-y-8">
                   {resumeData.education.map((edu) => (
-                     <div key={edu.id} className="p-8 bg-slate-50 border border-slate-200 rounded-[32px] relative group space-y-4 shadow-sm">
-                        <button onClick={() => removeItem('education', edu.id)} className="absolute top-8 right-8 p-2 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"><Trash2 size={16}/></button>
+                     <div key={edu.id} className="p-6 lg:p-8 bg-slate-50 border border-slate-200 rounded-[32px] relative group space-y-4 shadow-sm">
+                        <button onClick={() => removeItem('education', edu.id)} className="absolute top-8 right-8 p-2 text-slate-300 hover:text-red-500 lg:opacity-0 group-hover:opacity-100 transition-all"><Trash2 size={16}/></button>
                         <input type="text" placeholder="Academic Degree / Tier" value={edu.degree} onChange={(e) => handleArrayChange('education', edu.id, 'degree', e.target.value)} className={inputClass} />
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                            <input type="text" placeholder="Academy (University)" value={edu.school} onChange={(e) => handleArrayChange('education', edu.id, 'school', e.target.value)} className={inputClass} />
                            <input type="text" placeholder="Registry Year" value={edu.date} onChange={(e) => handleArrayChange('education', edu.id, 'date', e.target.value)} className={inputClass} />
                         </div>
@@ -529,7 +527,7 @@ const ResumeBuilder: React.FC<ResumeBuilderProps> = ({ currentUser }) => {
                <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-900 border border-slate-200"><Code2 size={20}/></div>
                   <div>
-                    <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Skill Matrix</h2>
+                    <h2 className="text-xl lg:text-2xl font-black text-slate-900 uppercase tracking-tight">Skill Matrix</h2>
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Technical Capability Cluster</p>
                   </div>
                </div>
@@ -551,7 +549,7 @@ const ResumeBuilder: React.FC<ResumeBuilderProps> = ({ currentUser }) => {
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-900 border border-slate-200"><FolderGit2 size={20}/></div>
                     <div>
-                      <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Active Deployments</h2>
+                      <h2 className="text-xl lg:text-2xl font-black text-slate-900 uppercase tracking-tight">Active Deployments</h2>
                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Independent Technical Projects</p>
                     </div>
                   </div>
@@ -559,8 +557,8 @@ const ResumeBuilder: React.FC<ResumeBuilderProps> = ({ currentUser }) => {
                </div>
                <div className="space-y-8">
                   {resumeData.projects.map((proj) => (
-                     <div key={proj.id} className="p-8 bg-slate-50 border border-slate-200 rounded-[32px] relative group space-y-4 shadow-sm">
-                        <button onClick={() => removeItem('projects', proj.id)} className="absolute top-8 right-8 p-2 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"><Trash2 size={16}/></button>
+                     <div key={proj.id} className="p-6 lg:p-8 bg-slate-50 border border-slate-200 rounded-[32px] relative group space-y-4 shadow-sm">
+                        <button onClick={() => removeItem('projects', proj.id)} className="absolute top-8 right-8 p-2 text-slate-300 hover:text-red-500 lg:opacity-0 group-hover:opacity-100 transition-all"><Trash2 size={16}/></button>
                         <input type="text" placeholder="Project Primary Identifier" value={proj.name} onChange={(e) => handleArrayChange('projects', proj.id, 'name', e.target.value)} className={inputClass} />
                         <input type="text" placeholder="Applied Tech Stack" value={proj.techStack} onChange={(e) => handleArrayChange('projects', proj.id, 'techStack', e.target.value)} className={inputClass} />
                         <textarea placeholder="Deployment Mission Objectives & Features..." value={proj.description} onChange={(e) => handleArrayChange('projects', proj.id, 'description', e.target.value)} className={textAreaClass} style={{ height: '8rem' }} />
@@ -574,7 +572,7 @@ const ResumeBuilder: React.FC<ResumeBuilderProps> = ({ currentUser }) => {
                <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-900 border border-slate-200"><Award size={20}/></div>
                   <div>
-                    <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Honor Registry</h2>
+                    <h2 className="text-xl lg:text-2xl font-black text-slate-900 uppercase tracking-tight">Honor Registry</h2>
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Distinguished Technical Honors</p>
                   </div>
                </div>
@@ -587,21 +585,21 @@ const ResumeBuilder: React.FC<ResumeBuilderProps> = ({ currentUser }) => {
          </div>
       </div>
 
-      {/* RIGHT: Visual Terminal & Export Engine */}
-      <div className="w-[45%] flex flex-col bg-slate-100 p-8 h-full">
-         <div className="bg-[#1e293b] rounded-3xl p-5 border border-slate-800 shadow-2xl flex items-center justify-between mb-8">
-            <div className="flex bg-slate-800 p-1.5 rounded-xl border border-slate-700">
+      {/* RIGHT: Visual Terminal & Export Engine (Bottom/Hidden on mobile) */}
+      <div className="w-full lg:w-[45%] flex flex-col bg-slate-100 p-4 lg:p-8 h-auto lg:h-full shrink-0">
+         <div className="bg-[#1e293b] rounded-3xl p-5 border border-slate-800 shadow-2xl flex flex-col lg:flex-row items-center justify-between mb-8 gap-4">
+            <div className="flex bg-slate-800 p-1.5 rounded-xl border border-slate-700 w-full lg:w-auto overflow-x-auto">
                {(['MODERN', 'CLASSIC', 'MINIMAL'] as TemplateType[]).map((t) => (
-                  <button key={t} onClick={() => setSelectedTemplate(t)} className={`px-5 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${selectedTemplate === t ? 'bg-cyan-500 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}>{t}</button>
+                  <button key={t} onClick={() => setSelectedTemplate(t)} className={`flex-1 lg:flex-none px-5 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${selectedTemplate === t ? 'bg-cyan-500 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}>{t}</button>
                ))}
             </div>
-            <button onClick={handlePrint} className="px-6 py-3 bg-white text-[#1e293b] rounded-xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-3">
+            <button onClick={handlePrint} className="w-full lg:w-auto px-6 py-3 bg-white text-[#1e293b] rounded-xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3">
                <Printer size={18} /> Export PDF
             </button>
          </div>
 
          {/* Sticky Preview Container */}
-         <div className="flex-1 bg-white/40 rounded-[40px] border border-slate-200/60 shadow-inner overflow-hidden flex justify-center p-8 relative">
+         <div className="flex-1 bg-white/40 rounded-[40px] border border-slate-200/60 shadow-inner overflow-hidden flex justify-center p-4 lg:p-8 relative min-h-[500px] lg:min-h-0">
             <div className="absolute top-4 right-8 flex items-center gap-2 text-[8px] font-black text-slate-300 uppercase tracking-widest">
                <Info size={12}/> Live Registry Preview
             </div>

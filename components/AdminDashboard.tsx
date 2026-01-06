@@ -101,14 +101,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
   };
 
   const RichToolbar = () => (
-    <div className="flex items-center gap-2 px-3 py-1.5 border-b border-slate-200 bg-slate-50">
-       <Bold size={14} className="text-slate-400 cursor-pointer hover:text-slate-900" />
-       <Italic size={14} className="text-slate-400 cursor-pointer hover:text-slate-900" />
-       <Underline size={14} className="text-slate-400 cursor-pointer hover:text-slate-900" />
-       <Type size={14} className="text-slate-400 cursor-pointer hover:text-slate-900 ml-2" />
-       <div className="w-px h-4 bg-slate-200 mx-2"></div>
-       <AlignLeft size={14} className="text-slate-400 cursor-pointer hover:text-slate-900" />
-       <List size={14} className="text-slate-400 cursor-pointer hover:text-slate-900" />
+    <div className="flex items-center gap-2 px-3 py-1.5 border-b border-slate-200 bg-slate-50 overflow-x-auto">
+       <Bold size={14} className="text-slate-400 cursor-pointer hover:text-slate-900 shrink-0" />
+       <Italic size={14} className="text-slate-400 cursor-pointer hover:text-slate-900 shrink-0" />
+       <Underline size={14} className="text-slate-400 cursor-pointer hover:text-slate-900 shrink-0" />
+       <Type size={14} className="text-slate-400 cursor-pointer hover:text-slate-900 ml-2 shrink-0" />
+       <div className="w-px h-4 bg-slate-200 mx-2 shrink-0"></div>
+       <AlignLeft size={14} className="text-slate-400 cursor-pointer hover:text-slate-900 shrink-0" />
+       <List size={14} className="text-slate-400 cursor-pointer hover:text-slate-900 shrink-0" />
     </div>
   );
 
@@ -120,37 +120,37 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
 
   return (
     <div className="min-h-screen bg-[#f3f4f6] flex flex-col">
-      <nav className="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-10 shrink-0 z-20 shadow-sm">
+      <nav className="h-16 md:h-20 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-10 shrink-0 z-20 shadow-sm">
         <div className="flex items-center gap-4">
-          <div className="w-11 h-11 bg-[#ff8c00] rounded-xl flex items-center justify-center font-black text-white shadow-lg">NC</div>
-          <h1 className="font-heading font-black text-2xl tracking-tighter uppercase text-slate-800">Nexus <span className="text-[#ff8c00]">Command</span></h1>
+          <div className="w-9 h-9 md:w-11 md:h-11 bg-[#ff8c00] rounded-xl flex items-center justify-center font-black text-white shadow-lg text-xs md:text-base">NC</div>
+          <h1 className="font-heading font-black text-lg md:text-2xl tracking-tighter uppercase text-slate-800">Nexus <span className="text-[#ff8c00]">Command</span></h1>
         </div>
         <div className="flex items-center gap-6">
            <button onClick={onLogout} className="p-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition-all"><LogOut size={20}/></button>
         </div>
       </nav>
 
-      <div className="flex-1 flex overflow-hidden">
-        <aside className="w-72 border-r border-slate-200 bg-white p-8 space-y-4 shrink-0 overflow-y-auto">
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+        <aside className="w-full md:w-72 border-b md:border-b-0 md:border-r border-slate-200 bg-white p-4 md:p-8 space-y-4 shrink-0 overflow-y-auto max-h-[200px] md:max-h-full">
              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 block">System Control</span>
-             <div className="space-y-1">
-                <button onClick={() => setActiveTab('telemetry')} className={`w-full text-left px-5 py-3 rounded-xl flex items-center gap-3 transition-all ${activeTab === 'telemetry' ? 'bg-[#ff8c00] text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50'}`}>
+             <div className="flex md:flex-col gap-2 overflow-x-auto md:overflow-visible pb-2 md:pb-0">
+                <button onClick={() => setActiveTab('telemetry')} className={`w-auto md:w-full text-left px-5 py-3 rounded-xl flex items-center gap-3 transition-all whitespace-nowrap ${activeTab === 'telemetry' ? 'bg-[#ff8c00] text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50'}`}>
                   <BarChart3 size={18} /> <span className="text-xs font-bold uppercase tracking-wider">Stats</span>
                 </button>
-                <button onClick={() => setActiveTab('academy')} className={`w-full text-left px-5 py-3 rounded-xl flex items-center gap-3 transition-all ${activeTab === 'academy' ? 'bg-[#ff8c00] text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50'}`}>
+                <button onClick={() => setActiveTab('academy')} className={`w-auto md:w-full text-left px-5 py-3 rounded-xl flex items-center gap-3 transition-all whitespace-nowrap ${activeTab === 'academy' ? 'bg-[#ff8c00] text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50'}`}>
                   <BookOpen size={18} /> <span className="text-xs font-bold uppercase tracking-wider">Curriculum</span>
                 </button>
              </div>
         </aside>
 
-        <main className="flex-1 p-12 overflow-y-auto custom-scrollbar bg-[#f9fafb]">
+        <main className="flex-1 p-4 md:p-12 overflow-y-auto custom-scrollbar bg-[#f9fafb]">
           {activeTab === 'academy' && (
              <div className="max-w-6xl mx-auto space-y-8">
                 {!activeModule && !isEditingModule && (
                     <div className="space-y-8 animate-in fade-in">
-                        <div className="flex items-center justify-between">
-                            <h2 className="text-3xl font-heading font-black text-slate-800 uppercase tracking-tighter">Academic <span className="text-[#ff8c00]">Library</span></h2>
-                            <div className="flex gap-2">
+                        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                            <h2 className="text-2xl md:text-3xl font-heading font-black text-slate-800 uppercase tracking-tighter">Academic <span className="text-[#ff8c00]">Library</span></h2>
+                            <div className="flex gap-2 flex-wrap">
                                 {dataService.getLanguages().map(lang => (
                                     <button key={lang} onClick={() => setSelectedLanguage(lang)} className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest ${selectedLanguage === lang ? 'bg-[#ff8c00] text-white' : 'bg-white text-slate-400 border border-slate-200'}`}>{lang}</button>
                                 ))}
@@ -180,8 +180,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
                 {activeModule && !isEditingProblem && (
                     <div className="space-y-6 animate-in slide-in-from-right-4">
                         <button onClick={() => setActiveModule(null)} className="flex items-center gap-2 text-slate-400 hover:text-slate-800 font-bold text-xs uppercase tracking-widest"><ArrowLeft size={16} /> Back to Modules</button>
-                        <div className="flex items-center justify-between">
-                            <h3 className="text-2xl font-black text-slate-800 uppercase">{activeModule.title} <span className="text-slate-300">/</span> {selectedDifficulty}</h3>
+                        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                            <h3 className="text-xl md:text-2xl font-black text-slate-800 uppercase">{activeModule.title} <span className="text-slate-300">/</span> {selectedDifficulty}</h3>
                             <button onClick={handleCreateProblem} className="px-6 py-3 bg-[#ff8c00] text-white rounded-xl text-xs font-bold uppercase tracking-widest flex items-center gap-2 shadow-lg"><Plus size={16}/> Add Question</button>
                         </div>
                         <div className="flex gap-2 mb-8">
@@ -204,16 +204,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
                 )}
 
                 {isEditingProblem && (
-                    <div className="fixed inset-0 z-[100] bg-slate-200/40 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in">
-                        <div className="bg-white w-full max-w-5xl max-h-[95vh] rounded-2xl shadow-2xl overflow-hidden flex flex-col border border-slate-200">
-                            <div className="px-8 py-5 border-b border-slate-100 flex items-center justify-between bg-white sticky top-0 z-10">
-                                <h3 className="text-xl font-heading font-black text-slate-800 uppercase tracking-tight">Edit Question</h3>
+                    <div className="fixed inset-0 z-[100] bg-slate-200/40 backdrop-blur-md flex items-center justify-center p-0 md:p-6 animate-in fade-in">
+                        <div className="bg-white w-full max-w-5xl h-full md:max-h-[95vh] md:rounded-2xl shadow-2xl overflow-hidden flex flex-col border border-slate-200">
+                            <div className="px-4 md:px-8 py-5 border-b border-slate-100 flex items-center justify-between bg-white sticky top-0 z-10">
+                                <h3 className="text-lg md:text-xl font-heading font-black text-slate-800 uppercase tracking-tight">Edit Question</h3>
                                 <button onClick={() => setIsEditingProblem(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors"><X size={24} className="text-slate-400" /></button>
                             </div>
 
-                            <div className="flex-1 overflow-y-auto p-8 custom-scrollbar space-y-10 bg-white">
+                            <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar space-y-10 bg-white">
                                 <form id="mainProblemForm" onSubmit={handleSaveProblem} className="space-y-10">
-                                    <div className="grid grid-cols-2 gap-10">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                                         <div className="space-y-6">
                                             <div>
                                                 <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">Question Type</label>
@@ -334,7 +334,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
                                             <label className="text-[11px] font-black text-slate-800 uppercase tracking-widest">Code Stub</label>
                                         </div>
                                         <div className="border border-slate-200 rounded-xl overflow-hidden p-6 space-y-4 bg-slate-50">
-                                            <select className="w-48 p-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-500">
+                                            <select className="w-full md:w-48 p-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-500">
                                                 <option>Python</option>
                                             </select>
                                             <textarea 
@@ -360,16 +360,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
                                         
                                         <div className="space-y-4">
                                             {editingProblem.testCases?.map((tc, idx) => (
-                                                <div key={idx} className="border border-slate-200 rounded-xl p-8 relative space-y-6 group bg-white shadow-sm">
+                                                <div key={idx} className="border border-slate-200 rounded-xl p-4 md:p-8 relative space-y-6 group bg-white shadow-sm">
                                                     <button 
                                                         type="button" 
                                                         onClick={() => setEditingProblem({...editingProblem, testCases: editingProblem.testCases?.filter((_, i) => i !== idx)})}
-                                                        className="absolute top-6 right-6 p-2 text-slate-300 hover:text-red-500 transition-colors"
+                                                        className="absolute top-4 right-4 md:top-6 md:right-6 p-2 text-slate-300 hover:text-red-500 transition-colors"
                                                     >
                                                         <Trash2 size={18} />
                                                     </button>
 
-                                                    <div className="w-1/3">
+                                                    <div className="w-full md:w-1/3">
                                                         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 block">Is Sample</label>
                                                         <select 
                                                             value={tc.isSample ? 'Yes' : 'No'}
@@ -415,7 +415,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
                                         </div>
                                     </div>
 
-                                    <div className="flex justify-end pt-10">
+                                    <div className="flex justify-end pt-10 pb-20 md:pb-0">
                                         <button 
                                             type="submit"
                                             className="px-10 py-3 bg-[#ff8c00] text-white font-black text-xs uppercase tracking-[0.2em] rounded-xl shadow-xl hover:scale-105 transition-transform"

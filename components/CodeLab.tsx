@@ -79,8 +79,6 @@ const CodeLab: React.FC<CodeLabProps> = ({ problemSet = [], onExit, currentUser 
     setOutput('>>> RUNNING COMPREHENSIVE TEST SUITE...\n');
 
     try {
-      // Ensure we have at least 5 test cases as requested
-      // If admin didn't provide enough, the validateSolution service handles it or we use what's available
       const { results } = await validateSolution(solutions[activeProblem.id], activeProblem.language, activeProblem.testCases);
       
       setTestResults(prev => ({ ...prev, [activeProblem.id]: results }));
@@ -112,7 +110,6 @@ const CodeLab: React.FC<CodeLabProps> = ({ problemSet = [], onExit, currentUser 
         const passedCount = results.filter(r => r.passed).length;
         const totalCount = results.length;
         
-        // Strict scoring: ONLY 100% pass gets points
         const isPerfect = passedCount === totalCount && totalCount > 0;
         
         return {
@@ -203,94 +200,87 @@ const CodeLab: React.FC<CodeLabProps> = ({ problemSet = [], onExit, currentUser 
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#8c8c8c] flex flex-col font-sans select-none overflow-hidden">
+    <div className="fixed inset-0 z-50 bg-[#8c8c8c] flex flex-col font-sans select-none overflow-hidden h-full w-full">
       {/* Top Header */}
-      <div className="h-14 bg-[#8c8c8c] flex items-center justify-between px-8 border-b border-black/10 shrink-0">
-         <div className="flex items-center gap-10">
-            <h1 className="text-sm font-bold text-slate-800 uppercase tracking-tight">Answer The Following</h1>
-            <div className="flex gap-6 text-sm font-bold text-slate-800">
+      <div className="h-14 bg-[#8c8c8c] flex items-center justify-between px-4 md:px-8 border-b border-black/10 shrink-0">
+         <div className="flex items-center gap-4 md:gap-10">
+            <h1 className="text-xs md:text-sm font-bold text-slate-800 uppercase tracking-tight truncate">Answer The Following</h1>
+            <div className="hidden md:flex gap-6 text-sm font-bold text-slate-800">
                 <span>Marks : {activeProblem.points}</span>
                 <span>Negative Marks : 0</span>
             </div>
          </div>
          <div className="flex items-center gap-6">
-             <div className="bg-white/30 px-4 py-1.5 rounded text-sm font-bold border border-white/40 text-slate-900 shadow-sm">
-                Time Remaining: {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}
+             <div className="bg-white/30 px-3 py-1 md:px-4 md:py-1.5 rounded text-xs md:text-sm font-bold border border-white/40 text-slate-900 shadow-sm">
+                Time: {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}
              </div>
          </div>
       </div>
 
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left Panel */}
-        <div className="w-[30%] bg-[#dcdcdc] border-r border-black/10 flex flex-col overflow-y-auto custom-scrollbar">
-           <div className="p-8 space-y-8">
-              <h2 className="text-xl font-bold text-slate-900 leading-tight">{activeProblem.title}</h2>
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden bg-[#dcdcdc]">
+        {/* Left Panel - Question (Top on Mobile, Left on Desktop) */}
+        <div className="w-full lg:w-[30%] bg-[#dcdcdc] border-b lg:border-b-0 lg:border-r border-black/10 flex flex-col overflow-y-auto custom-scrollbar h-[25vh] lg:h-full shrink-0">
+           <div className="p-4 md:p-8 space-y-4 md:space-y-8">
+              <h2 className="text-lg md:text-xl font-bold text-slate-900 leading-tight">{activeProblem.title}</h2>
               
-              <div className="bg-white/40 rounded-lg border border-black/5 p-4 flex items-center justify-between cursor-pointer hover:bg-white/50 transition-colors">
-                 <span className="text-xs font-bold text-slate-700">Instructions:</span>
-                 <ChevronDown size={16} />
-              </div>
-
-              <div className="space-y-6">
+              <div className="space-y-4 md:space-y-6">
                  <div className="space-y-1">
                     <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Problem Statement:</h3>
-                    <p className="text-sm text-slate-800 leading-relaxed font-semibold">{activeProblem.description}</p>
+                    <p className="text-xs md:text-sm text-slate-800 leading-relaxed font-semibold">{activeProblem.description}</p>
                  </div>
-                 <div className="space-y-1">
-                    <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Input Format:</h3>
-                    <p className="text-sm text-slate-700 font-bold">{activeProblem.inputFormat || 'NA'}</p>
-                 </div>
-                 <div className="space-y-1">
-                    <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Output Format:</h3>
-                    <p className="text-sm text-slate-700 font-bold leading-relaxed">{activeProblem.outputFormat || 'NA'}</p>
+                 <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                        <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Input Format:</h3>
+                        <p className="text-xs md:text-sm text-slate-700 font-bold">{activeProblem.inputFormat || 'NA'}</p>
+                    </div>
+                    <div className="space-y-1">
+                        <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Output Format:</h3>
+                        <p className="text-xs md:text-sm text-slate-700 font-bold leading-relaxed">{activeProblem.outputFormat || 'NA'}</p>
+                    </div>
                  </div>
                  <div className="space-y-1">
                     <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Constraints:</h3>
-                    <p className="text-sm text-slate-700 font-bold font-mono">{activeProblem.constraints || 'NA'}</p>
+                    <p className="text-xs md:text-sm text-slate-700 font-bold font-mono">{activeProblem.constraints || 'NA'}</p>
                  </div>
                  <div className="space-y-1">
                     <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Sample Input:</h3>
-                    <div className="bg-white/20 p-2 rounded text-sm text-slate-700 font-bold">{activeProblem.testCases[0]?.input || 'NA'}</div>
-                 </div>
-                 <div className="space-y-1">
-                    <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Sample Output:</h3>
-                    <div className="bg-white/20 p-2 rounded text-sm text-slate-700 font-bold">{activeProblem.testCases[0]?.expectedOutput || 'NA'}</div>
+                    <div className="bg-white/20 p-2 rounded text-xs md:text-sm text-slate-700 font-bold">{activeProblem.testCases[0]?.input || 'NA'}</div>
                  </div>
               </div>
            </div>
         </div>
 
-        {/* Center Panel */}
-        <div className="flex-1 bg-[#dcdcdc] flex flex-col p-6 gap-6 overflow-hidden">
-           <div className="flex-1 bg-white border border-black/10 rounded-xl flex flex-col overflow-hidden shadow-xl relative">
-              <div className="h-12 border-b border-black/5 flex items-center justify-between px-6 bg-[#f9fafb]">
-                 <span className="text-xs font-bold text-slate-500">Enter your code here</span>
+        {/* Center Panel - Code Editor (Middle on Mobile, Center on Desktop) */}
+        <div className="flex-1 bg-[#dcdcdc] flex flex-col p-2 md:p-6 gap-2 md:gap-6 overflow-hidden min-h-0">
+           <div className="flex-1 bg-white border border-black/10 rounded-xl flex flex-col overflow-hidden shadow-xl relative min-h-0">
+              <div className="h-10 md:h-12 border-b border-black/5 flex items-center justify-between px-4 bg-[#f9fafb] shrink-0">
+                 <span className="text-[10px] md:text-xs font-bold text-slate-500">Enter your code here</span>
                  <div className="flex items-center gap-3">
-                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Language</span>
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest hidden md:inline">Language</span>
                     <span className="px-3 py-1 bg-slate-100 rounded-full text-[10px] font-black border border-slate-200 text-slate-600">Python</span>
                  </div>
               </div>
               <div className="flex-1 flex overflow-hidden">
-                 <div className="w-12 bg-[#f3f4f6] border-r border-black/5 flex flex-col items-end pr-3 pt-6 text-[10px] font-bold text-slate-400 font-mono select-none">
+                 <div className="w-8 md:w-12 bg-[#f3f4f6] border-r border-black/5 flex flex-col items-end pr-2 md:pr-3 pt-4 md:pt-6 text-[10px] font-bold text-slate-400 font-mono select-none hidden md:flex">
                     {solutions[activeProblem.id].split('\n').map((_, i) => <div key={i} className="h-6 leading-6">{i + 1}</div>)}
                  </div>
                  <textarea 
                    value={solutions[activeProblem.id]}
                    onChange={(e) => handleCodeChange(e.target.value)}
-                   className="flex-1 p-6 focus:outline-none font-mono text-sm leading-6 resize-none bg-white text-slate-800 custom-scrollbar"
+                   className="flex-1 p-4 md:p-6 focus:outline-none font-mono text-sm leading-6 resize-none bg-white text-slate-800 custom-scrollbar"
                    spellCheck="false"
                  />
               </div>
 
-              <div className="absolute bottom-6 right-6 flex gap-3">
-                 <button onClick={runCodeOnly} disabled={isRunning} className="px-6 py-2.5 bg-slate-800 text-white rounded-full text-xs font-bold flex items-center gap-3 hover:bg-slate-700 shadow-2xl transition-all active:scale-95">
-                    {isRunning ? <RotateCcw size={14} className="animate-spin" /> : <Play size={14} fill="currentColor" />} Run Program
+              <div className="absolute bottom-4 right-4 md:bottom-6 md:right-6 flex gap-3">
+                 <button onClick={runCodeOnly} disabled={isRunning} className="px-4 py-2 md:px-6 md:py-2.5 bg-slate-800 text-white rounded-full text-[10px] md:text-xs font-bold flex items-center gap-2 md:gap-3 hover:bg-slate-700 shadow-2xl transition-all active:scale-95">
+                    {isRunning ? <RotateCcw size={14} className="animate-spin" /> : <Play size={14} fill="currentColor" />} Run
                  </button>
               </div>
            </div>
 
-           <div className="h-[160px] bg-slate-50 border border-black/5 rounded-xl p-5 font-mono text-xs text-slate-600 overflow-y-auto custom-scrollbar shadow-inner relative">
-              <div className="absolute top-2 right-4 text-[9px] font-black text-slate-300 uppercase tracking-widest">Standard Output / Test Status</div>
+           <div className="h-[100px] md:h-[160px] bg-slate-50 border border-black/5 rounded-xl p-4 md:p-5 font-mono text-xs text-slate-600 overflow-y-auto custom-scrollbar shadow-inner relative shrink-0">
+              <div className="absolute top-2 right-4 text-[8px] md:text-[9px] font-black text-slate-300 uppercase tracking-widest">Output</div>
               {output ? (
                   <div className="whitespace-pre-wrap">{output}</div>
               ) : (
@@ -302,12 +292,12 @@ const CodeLab: React.FC<CodeLabProps> = ({ problemSet = [], onExit, currentUser 
               {showResultsOverlay && (
                 <div className="mt-4 grid grid-cols-5 gap-2 border-t border-slate-200 pt-4">
                   {(testResults[activeProblem.id] || Array(5).fill(null)).map((res, i) => (
-                    <div key={i} className={`p-2 rounded text-[10px] font-black flex items-center gap-2 border ${
+                    <div key={i} className={`p-1 md:p-2 rounded text-[8px] md:text-[10px] font-black flex items-center gap-1 justify-center border ${
                       res === null ? 'bg-slate-50 border-slate-100 text-slate-300' :
                       res.passed ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-red-50 border-red-100 text-red-500'
                     }`}>
                       {res === null ? <RotateCcw size={10} className="animate-spin"/> : res.passed ? <CheckCircle size={10}/> : <X size={10}/>}
-                      CASE {i + 1}
+                      <span className="hidden md:inline">CASE</span> {i + 1}
                     </div>
                   ))}
                 </div>
@@ -315,20 +305,20 @@ const CodeLab: React.FC<CodeLabProps> = ({ problemSet = [], onExit, currentUser 
            </div>
         </div>
 
-        {/* Right Panel */}
-        <div className="w-[22%] bg-[#dcdcdc] border-l border-black/10 flex flex-col overflow-y-auto shrink-0">
-           <div className="p-6 space-y-8">
-              <div className="bg-white/40 rounded-xl p-5 border border-black/5 shadow-sm">
-                 <div className="flex items-center justify-between mb-6 pb-2 border-b border-black/10">
+        {/* Right Panel - Navigator (Bottom on Mobile, Right on Desktop) */}
+        <div className="w-full lg:w-[22%] bg-[#dcdcdc] border-t lg:border-t-0 lg:border-l border-black/10 flex flex-col overflow-y-auto shrink-0 h-[20vh] lg:h-full">
+           <div className="p-4 md:p-6 space-y-4 md:space-y-8">
+              <div className="bg-white/40 rounded-xl p-4 md:p-5 border border-black/5 shadow-sm">
+                 <div className="flex items-center justify-between mb-4 md:mb-6 pb-2 border-b border-black/10">
                     <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Questions</h3>
-                    <X size={16} className="text-slate-400 cursor-pointer" onClick={() => setShowResultsOverlay(false)} />
+                    <X size={16} className="text-slate-400 cursor-pointer hidden md:block" onClick={() => setShowResultsOverlay(false)} />
                  </div>
-                 <div className="grid grid-cols-5 gap-3">
+                 <div className="flex flex-wrap gap-2 md:grid md:grid-cols-5 md:gap-3">
                     {examProblems.map((p, i) => (
                        <div 
                           key={i} 
                           onClick={() => { setCurrentIndex(i); setShowResultsOverlay(false); }}
-                          className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold cursor-pointer transition-all shadow-sm ${
+                          className={`w-8 h-8 md:w-9 md:h-9 rounded-full flex items-center justify-center text-xs font-bold cursor-pointer transition-all shadow-sm ${
                              currentIndex === i ? 'ring-2 ring-slate-800 ring-offset-2 scale-110' : ''
                           } ${
                              status[p.id] === 'answered' ? 'bg-[#10b981] text-white' :
@@ -342,7 +332,7 @@ const CodeLab: React.FC<CodeLabProps> = ({ problemSet = [], onExit, currentUser 
                  </div>
               </div>
 
-              <div className="bg-white/40 rounded-xl overflow-hidden border border-black/5 shadow-sm">
+              <div className="bg-white/40 rounded-xl overflow-hidden border border-black/5 shadow-sm hidden md:block">
                  <div className="bg-[#b4b4b4] py-2 text-center text-[10px] font-black text-slate-800 uppercase tracking-[0.2em]">Summary</div>
                  <div className="p-5 space-y-4">
                     <div className="flex items-center gap-3 text-xs font-bold">
@@ -367,31 +357,31 @@ const CodeLab: React.FC<CodeLabProps> = ({ problemSet = [], onExit, currentUser 
       </div>
 
       {/* Footer Navigation */}
-      <div className="h-20 bg-[#dcdcdc] border-t border-black/10 flex items-center justify-between px-10 shrink-0">
-          <button className="text-[11px] font-black text-slate-500 hover:text-slate-900 uppercase tracking-widest flex items-center gap-2">
+      <div className="h-16 md:h-20 bg-[#dcdcdc] border-t border-black/10 flex items-center justify-between px-4 md:px-10 shrink-0 gap-2">
+          <button className="text-[11px] font-black text-slate-500 hover:text-slate-900 uppercase tracking-widest flex items-center gap-2 hidden md:flex">
              <Flag size={14}/> Report Error
           </button>
           
-          <div className="flex gap-4">
-             <button onClick={handlePrevious} disabled={currentIndex === 0} className="px-8 py-3 bg-[#10b981] text-white rounded-full font-black text-xs uppercase hover:bg-[#059669] disabled:opacity-30">Previous</button>
-             <button onClick={handleClear} className="px-8 py-3 bg-white border border-slate-300 text-slate-600 rounded-full font-black text-xs uppercase hover:bg-slate-50">Clear</button>
-             <button onClick={handleMark} className="px-8 py-3 bg-[#f59e0b] text-white rounded-full font-black text-xs uppercase hover:bg-[#d97706]">Mark</button>
+          <div className="flex gap-2 md:gap-4 overflow-x-auto">
+             <button onClick={handlePrevious} disabled={currentIndex === 0} className="px-4 py-2 md:px-8 md:py-3 bg-[#10b981] text-white rounded-full font-black text-[10px] md:text-xs uppercase hover:bg-[#059669] disabled:opacity-30 whitespace-nowrap">Prev</button>
+             <button onClick={handleClear} className="px-4 py-2 md:px-8 md:py-3 bg-white border border-slate-300 text-slate-600 rounded-full font-black text-[10px] md:text-xs uppercase hover:bg-slate-50 hidden sm:block">Clear</button>
+             <button onClick={handleMark} className="px-4 py-2 md:px-8 md:py-3 bg-[#f59e0b] text-white rounded-full font-black text-[10px] md:text-xs uppercase hover:bg-[#d97706] hidden sm:block">Mark</button>
              
-             {/* SUBMIT BUTTON - Run all test cases */}
+             {/* SUBMIT BUTTON */}
              <button 
                 onClick={handleSubmitQuestion} 
                 disabled={isSubmittingQuestion}
-                className="px-10 py-3 bg-[#14b8a6] text-white rounded-full font-black text-xs uppercase tracking-widest shadow-xl hover:bg-[#0d9488] transition-all flex items-center gap-2"
+                className="px-6 py-2 md:px-10 md:py-3 bg-[#14b8a6] text-white rounded-full font-black text-[10px] md:text-xs uppercase tracking-widest shadow-xl hover:bg-[#0d9488] transition-all flex items-center gap-2 whitespace-nowrap"
              >
                 {isSubmittingQuestion ? <RotateCcw size={14} className="animate-spin" /> : <ShieldCheck size={16}/>}
                 Submit
              </button>
 
-             <button onClick={handleNext} disabled={currentIndex === examProblems.length - 1} className="px-8 py-3 bg-[#3b82f6] text-white rounded-full font-black text-xs uppercase hover:bg-[#2563eb] disabled:opacity-30">Next</button>
+             <button onClick={handleNext} disabled={currentIndex === examProblems.length - 1} className="px-4 py-2 md:px-8 md:py-3 bg-[#3b82f6] text-white rounded-full font-black text-[10px] md:text-xs uppercase hover:bg-[#2563eb] disabled:opacity-30 whitespace-nowrap">Next</button>
           </div>
           
-          <button onClick={finalizeExam} className="px-10 py-3 bg-slate-900 text-white rounded-lg font-black text-xs uppercase tracking-[0.2em] hover:bg-slate-800 transition-all">
-             End Test
+          <button onClick={finalizeExam} className="px-4 py-2 md:px-10 md:py-3 bg-slate-900 text-white rounded-lg font-black text-[10px] md:text-xs uppercase tracking-[0.2em] hover:bg-slate-800 transition-all whitespace-nowrap">
+             End
           </button>
       </div>
 
@@ -421,9 +411,9 @@ const CodeLab: React.FC<CodeLabProps> = ({ problemSet = [], onExit, currentUser 
 
       {isSubmittingExam && (
          <div className="fixed inset-0 z-[200] bg-slate-900/40 backdrop-blur-md flex flex-col items-center justify-center text-white">
-            <div className="bg-white p-12 rounded-[40px] shadow-2xl flex flex-col items-center gap-6">
+            <div className="bg-white p-8 md:p-12 rounded-[40px] shadow-2xl flex flex-col items-center gap-6">
                <RotateCcw size={64} className="text-[#ff8c00] animate-spin" />
-               <h2 className="text-xl font-black text-slate-800 uppercase tracking-[0.3em]">Processing Final Registry</h2>
+               <h2 className="text-lg md:text-xl font-black text-slate-800 uppercase tracking-[0.3em] text-center">Processing Final Registry</h2>
             </div>
          </div>
       )}
