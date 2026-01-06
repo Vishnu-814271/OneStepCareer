@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { User, GlobalSettings, CourseModule, Problem, Difficulty, TestCase } from '../types';
-import { LogOut, Users, BarChart3, ShieldCheck, Settings, Save, Lock, Smartphone, LayoutGrid, MessageSquare, AlertCircle, ShieldAlert, Clock, BookOpen, Plus, Trash2, Edit, ChevronRight, ArrowLeft, Code2, CheckSquare, Layers, Folder } from 'lucide-react';
+import { LogOut, Users, BarChart3, ShieldCheck, Settings, Save, Lock, Smartphone, LayoutGrid, MessageSquare, AlertCircle, ShieldAlert, Clock, BookOpen, Plus, Trash2, Edit, ChevronRight, ArrowLeft, Code2, CheckSquare, Layers, Folder, X, Bold, Italic, Underline, AlignLeft, List, Type, FileCode2 } from 'lucide-react';
 import { dataService } from '../services/dataService';
 import CommunityChat from './CommunityChat';
 
@@ -13,17 +13,12 @@ interface AdminDashboardProps {
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
   const [activeTab, setActiveTab] = useState<'telemetry' | 'security' | 'personnel' | 'community' | 'academy'>('telemetry');
   const [settings, setSettings] = useState<GlobalSettings>(dataService.getSettings());
-  const [saveStatus, setSaveStatus] = useState(false);
   
-  // Academy State
   const [selectedLanguage, setSelectedLanguage] = useState<string>('Python');
   const [modules, setModules] = useState<CourseModule[]>([]);
-  
-  // Module Editing
   const [isEditingModule, setIsEditingModule] = useState<boolean>(false);
   const [editingModule, setEditingModule] = useState<Partial<CourseModule>>({});
 
-  // Problem Management State
   const [activeModule, setActiveModule] = useState<CourseModule | null>(null);
   const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>('L0');
   const [moduleProblems, setModuleProblems] = useState<Problem[]>([]);
@@ -32,28 +27,17 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
 
   useEffect(() => {
     setModules(dataService.getModulesByLanguage(selectedLanguage));
-    setActiveModule(null); // Reset drill down when language changes
+    setActiveModule(null);
   }, [selectedLanguage, activeTab]);
 
   useEffect(() => {
-    if (activeModule) {
-       loadProblems(activeModule);
-    }
+    if (activeModule) loadProblems(activeModule);
   }, [activeModule, selectedDifficulty]);
 
   const loadProblems = (module: CourseModule) => {
      const allProblems = dataService.getProblemsByModule(module.language, module.title);
      setModuleProblems(allProblems.filter(p => p.difficulty === selectedDifficulty));
   };
-
-  const handleSaveSettings = (e: React.FormEvent) => {
-    e.preventDefault();
-    dataService.updateSettings(settings);
-    setSaveStatus(true);
-    setTimeout(() => setSaveStatus(false), 2000);
-  };
-
-  // --- Module Handlers ---
 
   const handleSaveModule = (e: React.FormEvent) => {
      e.preventDefault();
@@ -77,46 +61,35 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
      }
   };
 
-  const handleDeleteModule = (id: string) => {
-     if(window.confirm("Are you sure? This will delete the module and all associated problems.")) {
-        dataService.deleteModule(id);
-        setModules(dataService.getModulesByLanguage(selectedLanguage));
-     }
-  };
-
-  // --- Problem Handlers ---
-
   const handleCreateProblem = () => {
     if (!activeModule) return;
     setEditingProblem({
-       id: `${activeModule.id}-${Date.now()}`,
+       id: `PROB-${Date.now()}`,
        language: activeModule.language,
+       allowedLanguages: ['Python'],
        module: activeModule.title,
        difficulty: selectedDifficulty,
-       title: 'New Problem',
+       title: 'New Programming Problem',
        description: '',
-       points: selectedDifficulty === 'L0' ? 10 : selectedDifficulty === 'L1' ? 20 : 30,
+       inputFormat: 'NA',
+       outputFormat: '',
+       constraints: 'NA',
+       points: 10,
        starterCode: '',
-       testCases: [{ input: '', expectedOutput: '', isHidden: false }]
+       sampleAnswer: '',
+       testCases: [{ input: 'NA', expectedOutput: '', isHidden: false, isSample: false }]
     });
     setIsEditingProblem(true);
   };
 
   const handleEditProblem = (prob: Problem) => {
-     setEditingProblem(JSON.parse(JSON.stringify(prob))); // Deep copy
+     setEditingProblem(JSON.parse(JSON.stringify(prob)));
      setIsEditingProblem(true);
-  };
-
-  const handleDeleteProblem = (id: string) => {
-     if(window.confirm("Delete this problem?")) {
-        dataService.deleteProblem(id);
-        if (activeModule) loadProblems(activeModule);
-     }
   };
 
   const handleSaveProblem = (e: React.FormEvent) => {
      e.preventDefault();
-     if (editingProblem.title && editingProblem.description && activeModule) {
+     if (editingProblem.title && activeModule) {
         if (dataService.getProblems().find(p => p.id === editingProblem.id)) {
            dataService.updateProblem(editingProblem as Problem);
         } else {
@@ -127,31 +100,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
      }
   };
 
-  const handleTestCaseChange = (index: number, field: keyof TestCase, value: any) => {
-     if (editingProblem.testCases) {
-        const newCases = [...editingProblem.testCases];
-        newCases[index] = { ...newCases[index], [field]: value };
-        setEditingProblem({ ...editingProblem, testCases: newCases });
-     }
-  };
+  const RichToolbar = () => (
+    <div className="flex items-center gap-2 px-3 py-1.5 border-b border-slate-200 bg-slate-50">
+       <Bold size={14} className="text-slate-400 cursor-pointer hover:text-slate-900" />
+       <Italic size={14} className="text-slate-400 cursor-pointer hover:text-slate-900" />
+       <Underline size={14} className="text-slate-400 cursor-pointer hover:text-slate-900" />
+       <Type size={14} className="text-slate-400 cursor-pointer hover:text-slate-900 ml-2" />
+       <div className="w-px h-4 bg-slate-200 mx-2"></div>
+       <AlignLeft size={14} className="text-slate-400 cursor-pointer hover:text-slate-900" />
+       <List size={14} className="text-slate-400 cursor-pointer hover:text-slate-900" />
+    </div>
+  );
 
-  const addTestCase = () => {
-     setEditingProblem({
-        ...editingProblem,
-        testCases: [...(editingProblem.testCases || []), { input: '', expectedOutput: '', isHidden: false }]
-     });
-  };
-
-  const removeTestCase = (index: number) => {
-     if (editingProblem.testCases) {
-        setEditingProblem({
-           ...editingProblem,
-           testCases: editingProblem.testCases.filter((_, i) => i !== index)
-        });
-     }
-  };
-
-  // Helper to group modules by category
   const groupedModules = modules.reduce((acc, mod) => {
       if (!acc[mod.category]) acc[mod.category] = [];
       acc[mod.category].push(mod);
@@ -159,439 +119,324 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
   }, {} as Record<string, CourseModule[]>);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-500 to-amber-600 flex flex-col">
-      <nav className="h-20 bg-brand-blue border-b border-white/10 flex items-center justify-between px-10 text-white shrink-0 z-20 shadow-xl">
+    <div className="min-h-screen bg-[#f3f4f6] flex flex-col">
+      <nav className="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-10 shrink-0 z-20 shadow-sm">
         <div className="flex items-center gap-4">
-          <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center font-black shadow-inner">NC</div>
-          <h1 className="font-heading font-black text-2xl tracking-tighter uppercase">Nexus <span className="text-brand-cyan">Command</span></h1>
+          <div className="w-11 h-11 bg-[#ff8c00] rounded-xl flex items-center justify-center font-black text-white shadow-lg">NC</div>
+          <h1 className="font-heading font-black text-2xl tracking-tighter uppercase text-slate-800">Nexus <span className="text-[#ff8c00]">Command</span></h1>
         </div>
         <div className="flex items-center gap-6">
-           <div className="px-4 py-2 bg-emerald-500/20 text-emerald-400 rounded-lg text-[10px] font-black uppercase tracking-widest border border-emerald-500/20">
-              System Online
-           </div>
-           <button onClick={onLogout} className="p-3 bg-white/10 hover:bg-white/20 rounded-xl transition-all shadow-lg"><LogOut size={20}/></button>
+           <button onClick={onLogout} className="p-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition-all"><LogOut size={20}/></button>
         </div>
       </nav>
 
       <div className="flex-1 flex overflow-hidden">
-        <aside className="w-80 border-r border-slate-200 bg-white p-10 space-y-4 shrink-0 overflow-y-auto">
-          <div className="mb-10">
-             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 block">Navigation Console</span>
-             <div className="space-y-2">
-                <button onClick={() => setActiveTab('telemetry')} className={`w-full text-left px-6 py-4 rounded-2xl flex items-center gap-4 transition-all ${activeTab === 'telemetry' ? 'bg-brand-blue text-white shadow-xl shadow-brand-blue/20' : 'text-slate-400 hover:bg-slate-50'}`}>
-                  <BarChart3 size={20} /> <span className="text-xs font-black uppercase tracking-widest">Telemetry</span>
+        <aside className="w-72 border-r border-slate-200 bg-white p-8 space-y-4 shrink-0 overflow-y-auto">
+             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 block">System Control</span>
+             <div className="space-y-1">
+                <button onClick={() => setActiveTab('telemetry')} className={`w-full text-left px-5 py-3 rounded-xl flex items-center gap-3 transition-all ${activeTab === 'telemetry' ? 'bg-[#ff8c00] text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50'}`}>
+                  <BarChart3 size={18} /> <span className="text-xs font-bold uppercase tracking-wider">Stats</span>
                 </button>
-                <button onClick={() => setActiveTab('security')} className={`w-full text-left px-6 py-4 rounded-2xl flex items-center gap-4 transition-all ${activeTab === 'security' ? 'bg-brand-blue text-white shadow-xl shadow-brand-blue/20' : 'text-slate-400 hover:bg-slate-50'}`}>
-                  <ShieldCheck size={20} /> <span className="text-xs font-black uppercase tracking-widest">Protocols</span>
-                </button>
-                <button onClick={() => setActiveTab('personnel')} className={`w-full text-left px-6 py-4 rounded-2xl flex items-center gap-4 transition-all ${activeTab === 'personnel' ? 'bg-brand-blue text-white shadow-xl shadow-brand-blue/20' : 'text-slate-400 hover:bg-slate-50'}`}>
-                  <Users size={20} /> <span className="text-xs font-black uppercase tracking-widest">Personnel</span>
-                </button>
-                <button onClick={() => setActiveTab('academy')} className={`w-full text-left px-6 py-4 rounded-2xl flex items-center gap-4 transition-all ${activeTab === 'academy' ? 'bg-brand-blue text-white shadow-xl shadow-brand-blue/20' : 'text-slate-400 hover:bg-slate-50'}`}>
-                  <BookOpen size={20} /> <span className="text-xs font-black uppercase tracking-widest">Academy</span>
-                </button>
-                <button onClick={() => setActiveTab('community')} className={`w-full text-left px-6 py-4 rounded-2xl flex items-center gap-4 transition-all ${activeTab === 'community' ? 'bg-brand-blue text-white shadow-xl shadow-brand-blue/20' : 'text-slate-400 hover:bg-slate-50'}`}>
-                  <MessageSquare size={20} /> <span className="text-xs font-black uppercase tracking-widest">Comms</span>
+                <button onClick={() => setActiveTab('academy')} className={`w-full text-left px-5 py-3 rounded-xl flex items-center gap-3 transition-all ${activeTab === 'academy' ? 'bg-[#ff8c00] text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50'}`}>
+                  <BookOpen size={18} /> <span className="text-xs font-bold uppercase tracking-wider">Curriculum</span>
                 </button>
              </div>
-          </div>
         </aside>
 
-        <main className="flex-1 p-16 overflow-y-auto custom-scrollbar bg-white/5 backdrop-blur-sm">
-          
-          {/* SECURITY TAB */}
-          {activeTab === 'security' && (
-            <div className="max-w-4xl animate-fade-in space-y-16">
-               <div className="space-y-4">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/20 text-white rounded-full text-[9px] font-black uppercase tracking-widest border border-white/20">
-                    <ShieldAlert size={12}/> Security Infrastructure
-                  </div>
-                  <h2 className="text-5xl font-heading font-black text-white uppercase tracking-tighter">Integrity <span className="text-white/70">Protocols</span></h2>
-                  <p className="text-white/80 font-medium max-w-xl">Configure system-wide behavioral heuristics and automated proctoring termination thresholds for all technical assessments.</p>
-               </div>
-
-               <form onSubmit={handleSaveSettings} className="space-y-10">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                     <div className="bg-white p-12 rounded-[48px] shadow-sm border border-slate-100 space-y-8">
-                        <div className="flex items-center gap-4 text-brand-blue">
-                           <div className="w-12 h-12 bg-orange-50 rounded-2xl flex items-center justify-center text-brand-orange">
-                             <Lock size={24} />
-                           </div>
-                           <h3 className="font-black text-xs uppercase tracking-widest">Anti-Cheat Engine</h3>
-                        </div>
-                        <div className="space-y-6">
-                           <label className="flex items-center justify-between p-6 bg-slate-50 rounded-3xl border border-slate-100 cursor-pointer hover:border-brand-cyan transition-all group">
-                              <div className="flex flex-col">
-                                <span className="text-sm font-black text-slate-700 uppercase tracking-tight">Allow Code Migration</span>
-                                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Enable Copy-Paste Logic</span>
-                              </div>
-                              <input 
-                                 type="checkbox" 
-                                 checked={settings.allowCopyPaste} 
-                                 onChange={e => setSettings({...settings, allowCopyPaste: e.target.checked})}
-                                 className="w-6 h-6 accent-brand-cyan"
-                              />
-                           </label>
-                           <div className="space-y-3">
-                              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2"><AlertCircle size={12}/> Tab Switch Threshold</span>
-                              <input 
-                                 type="number" 
-                                 value={settings.tabSwitchLimit} 
-                                 min="1"
-                                 max="10"
-                                 onChange={e => setSettings({...settings, tabSwitchLimit: Number(e.target.value)})}
-                                 className="w-full bg-slate-50 border border-slate-200 rounded-[24px] px-8 py-5 text-lg font-black text-brand-blue focus:border-brand-cyan outline-none transition-all shadow-inner"
-                              />
-                              <p className="text-[9px] text-slate-400 font-bold px-1 uppercase tracking-widest italic">User will be automatically terminated after reaching this infraction count.</p>
-                           </div>
-                        </div>
-                     </div>
-
-                     <div className="bg-white p-12 rounded-[48px] shadow-sm border border-slate-100 space-y-8">
-                        <div className="flex items-center gap-4 text-brand-blue">
-                           <div className="w-12 h-12 bg-brand-cyan/10 rounded-2xl flex items-center justify-center text-brand-cyan">
-                             <Clock size={24} />
-                           </div>
-                           <h3 className="font-black text-xs uppercase tracking-widest">Chrono Configuration</h3>
-                        </div>
-                        <div className="space-y-3">
-                           <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2"><Smartphone size={12}/> Standard Unit Duration</span>
-                           <input 
-                              type="number" 
-                              value={settings.standardTimeLimit} 
-                              onChange={e => setSettings({...settings, standardTimeLimit: Number(e.target.value)})}
-                              className="w-full bg-slate-50 border border-slate-200 rounded-[24px] px-8 py-5 text-lg font-black text-brand-blue focus:border-brand-cyan outline-none transition-all shadow-inner"
-                           />
-                           <div className="flex items-center justify-between px-2 pt-2">
-                              <span className="text-[10px] font-black text-brand-cyan uppercase tracking-[0.2em]">{Math.floor(settings.standardTimeLimit / 60)} minutes total</span>
-                              <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Target: 90min</span>
-                           </div>
-                        </div>
-                     </div>
-                  </div>
-
-                  <button type="submit" className="w-full py-6 bg-white text-orange-600 rounded-[32px] font-black text-sm uppercase tracking-[0.3em] shadow-3xl flex items-center justify-center gap-5 hover:scale-[1.02] active:scale-95 transition-all">
-                    {saveStatus ? <><ShieldCheck size={24}/> Protocols Synchronized</> : <><Save size={24}/> Update Security Registry</>}
-                  </button>
-               </form>
-            </div>
-          )}
-
-          {/* ACADEMY TAB */}
+        <main className="flex-1 p-12 overflow-y-auto custom-scrollbar bg-[#f9fafb]">
           {activeTab === 'academy' && (
-             <div className="max-w-7xl animate-fade-in space-y-12">
-                
-                {/* Header Section */}
-                <div className="flex items-center justify-between">
-                   <div className="space-y-2">
-                      <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/20 text-white rounded-full text-[9px] font-black uppercase tracking-widest border border-white/20">
-                        <BookOpen size={12}/> Curriculum Control
-                      </div>
-                      <h2 className="text-4xl font-heading font-black text-white uppercase tracking-tighter">Academy <span className="text-white/70">Manager</span></h2>
-                   </div>
-                   
-                   {!activeModule && (
-                      <div className="flex gap-4">
-                        {dataService.getLanguages().map(lang => (
-                            <button 
-                            key={lang}
-                            onClick={() => setSelectedLanguage(lang)}
-                            className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${selectedLanguage === lang ? 'bg-white text-brand-blue shadow-lg' : 'bg-white/10 text-white hover:bg-white/20'}`}
-                            >
-                                {lang}
-                            </button>
-                        ))}
-                      </div>
-                   )}
-                </div>
-
-                {/* VIEW 1: Module List (Grouped by Category) */}
+             <div className="max-w-6xl mx-auto space-y-8">
                 {!activeModule && !isEditingModule && (
-                    <div className="space-y-12 animate-in slide-in-from-bottom-4">
-                        <div className="flex items-center justify-end">
-                            <button 
-                            onClick={() => { setIsEditingModule(true); setEditingModule({}); }}
-                            className="flex items-center gap-2 px-4 py-2 bg-white text-brand-blue rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-100 transition-all"
-                            >
-                                <Plus size={16} /> New Module
-                            </button>
+                    <div className="space-y-8 animate-in fade-in">
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-3xl font-heading font-black text-slate-800 uppercase tracking-tighter">Academic <span className="text-[#ff8c00]">Library</span></h2>
+                            <div className="flex gap-2">
+                                {dataService.getLanguages().map(lang => (
+                                    <button key={lang} onClick={() => setSelectedLanguage(lang)} className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest ${selectedLanguage === lang ? 'bg-[#ff8c00] text-white' : 'bg-white text-slate-400 border border-slate-200'}`}>{lang}</button>
+                                ))}
+                            </div>
                         </div>
-
-                        {Object.entries(groupedModules).map(([category, catModules]) => (
-                            <div key={category} className="space-y-6">
-                                <h3 className="text-xl font-bold text-white border-b border-white/20 pb-2 flex items-center gap-2">
-                                    <Folder size={20} className="text-white/70" />
-                                    {category}
-                                </h3>
+                        <button onClick={() => { setIsEditingModule(true); setEditingModule({}); }} className="px-6 py-3 bg-[#ff8c00] text-white rounded-xl text-xs font-bold uppercase tracking-widest flex items-center gap-2 shadow-lg"><Plus size={16}/> New Module</button>
+                        
+                        {(Object.entries(groupedModules) as [string, CourseModule[]][]).map(([category, catModules]) => (
+                            <div key={category} className="space-y-4">
+                                <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-200 pb-2">{category}</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                    {(catModules as CourseModule[]).map(mod => (
-                                        <div key={mod.id} className="bg-white p-6 rounded-3xl border border-slate-200 flex flex-col justify-between group hover:border-brand-cyan/30 hover:shadow-xl transition-all h-full">
+                                    {catModules.map(mod => (
+                                        <div key={mod.id} className="bg-white p-6 rounded-2xl border border-slate-200 flex flex-col justify-between group hover:border-[#ff8c00] transition-all h-48 shadow-sm">
                                             <div>
-                                                <div className="flex items-center justify-between mb-4">
-                                                    <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 group-hover:bg-brand-cyan group-hover:text-white transition-colors">
-                                                        <BookOpen size={20} />
-                                                    </div>
-                                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <button onClick={(e) => { e.stopPropagation(); setEditingModule(mod); setIsEditingModule(true); }} className="p-2 hover:bg-slate-100 rounded-lg text-brand-blue"><Edit size={14}/></button>
-                                                        <button onClick={(e) => { e.stopPropagation(); handleDeleteModule(mod.id); }} className="p-2 hover:bg-red-50 rounded-lg text-red-400"><Trash2 size={14}/></button>
-                                                    </div>
-                                                </div>
-                                                <h4 className="font-bold text-slate-800 mb-2">{mod.title}</h4>
-                                                <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">{mod.description}</p>
+                                                <h4 className="font-bold text-slate-800 mb-1">{mod.title}</h4>
+                                                <p className="text-[10px] text-slate-400 uppercase tracking-widest">{mod.language}</p>
                                             </div>
-                                            <button 
-                                                onClick={() => setActiveModule(mod)}
-                                                className="mt-6 w-full py-3 rounded-xl bg-slate-50 text-slate-600 font-bold text-xs uppercase tracking-widest hover:bg-brand-blue hover:text-white transition-all flex items-center justify-center gap-2"
-                                            >
-                                                Manage Content <ChevronRight size={14} />
-                                            </button>
+                                            <button onClick={() => setActiveModule(mod)} className="w-full py-2.5 rounded-lg bg-slate-50 text-slate-600 font-bold text-[10px] uppercase tracking-widest hover:bg-[#ff8c00] hover:text-white transition-all">Enter Lab</button>
                                         </div>
                                     ))}
                                 </div>
                             </div>
                         ))}
-                        
-                        {Object.keys(groupedModules).length === 0 && (
-                             <div className="text-center py-20 bg-white/10 rounded-[32px] border-2 border-dashed border-white/20">
-                                <BookOpen size={48} className="mx-auto text-white/40 mb-4" />
-                                <p className="text-white font-medium">No courses found for {selectedLanguage}.</p>
-                                <p className="text-xs text-white/60 uppercase tracking-widest mt-2">Create a new module to get started.</p>
-                             </div>
-                        )}
                     </div>
                 )}
 
-                {/* VIEW 2: Problem Management (Drill Down) */}
                 {activeModule && !isEditingProblem && (
-                    <div className="animate-in slide-in-from-right-4 space-y-8">
-                        <button 
-                            onClick={() => setActiveModule(null)}
-                            className="flex items-center gap-2 text-white/60 hover:text-white font-bold text-xs uppercase tracking-widest"
-                        >
-                            <ArrowLeft size={16} /> Back to Modules
-                        </button>
-
-                        <div className="flex flex-col md:flex-row gap-8 items-start">
-                            <div className="w-full md:w-64 bg-white p-6 rounded-[24px] border border-slate-200 space-y-6 shrink-0">
-                                <div className="space-y-2">
-                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Active Module</span>
-                                    <h3 className="text-xl font-black text-brand-blue">{activeModule.title}</h3>
-                                    <span className="text-[10px] font-bold text-brand-orange bg-brand-orange/10 px-2 py-1 rounded-md">{activeModule.category}</span>
-                                </div>
-                                <div className="space-y-2">
-                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Difficulty Tier</span>
-                                    <div className="flex flex-col gap-2">
-                                        {['L0', 'L1', 'L2'].map((diff) => (
-                                            <button 
-                                                key={diff}
-                                                onClick={() => setSelectedDifficulty(diff as Difficulty)}
-                                                className={`w-full py-3 px-4 rounded-xl text-xs font-bold uppercase tracking-widest flex items-center justify-between transition-all ${selectedDifficulty === diff ? 'bg-brand-cyan text-white shadow-lg' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}
-                                            >
-                                                {diff === 'L0' ? 'Basic (L0)' : diff === 'L1' ? 'Inter (L1)' : 'Adv (L2)'}
-                                                {selectedDifficulty === diff && <CheckSquare size={14} />}
-                                            </button>
-                                        ))}
+                    <div className="space-y-6 animate-in slide-in-from-right-4">
+                        <button onClick={() => setActiveModule(null)} className="flex items-center gap-2 text-slate-400 hover:text-slate-800 font-bold text-xs uppercase tracking-widest"><ArrowLeft size={16} /> Back to Modules</button>
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-2xl font-black text-slate-800 uppercase">{activeModule.title} <span className="text-slate-300">/</span> {selectedDifficulty}</h3>
+                            <button onClick={handleCreateProblem} className="px-6 py-3 bg-[#ff8c00] text-white rounded-xl text-xs font-bold uppercase tracking-widest flex items-center gap-2 shadow-lg"><Plus size={16}/> Add Question</button>
+                        </div>
+                        <div className="flex gap-2 mb-8">
+                            {['L0', 'L1', 'L2'].map(d => (
+                                <button key={d} onClick={() => setSelectedDifficulty(d as Difficulty)} className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${selectedDifficulty === d ? 'bg-[#ff8c00] text-white' : 'bg-slate-200 text-slate-500'}`}>{d}</button>
+                            ))}
+                        </div>
+                        <div className="grid gap-3">
+                            {moduleProblems.map(p => (
+                                <div key={p.id} className="bg-white p-5 rounded-xl border border-slate-200 flex items-center justify-between group hover:border-[#ff8c00] shadow-sm">
+                                    <div>
+                                        <h4 className="font-bold text-slate-800 text-sm">{p.title}</h4>
+                                        <p className="text-[9px] text-slate-400 uppercase tracking-widest">Marks: {p.points} • {p.testCases.length} Test Cases</p>
                                     </div>
+                                    <button onClick={() => handleEditProblem(p)} className="p-2 text-slate-300 hover:text-[#ff8c00] transition-colors"><Edit size={16}/></button>
                                 </div>
-                            </div>
-
-                            <div className="flex-1 space-y-6">
-                                <div className="flex items-center justify-between">
-                                    <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                                        <Layers size={20} className="text-white/60"/>
-                                        Problem Set <span className="text-white/40">/</span> {selectedDifficulty}
-                                    </h3>
-                                    <button 
-                                        onClick={handleCreateProblem}
-                                        className="flex items-center gap-2 px-5 py-2.5 bg-white text-brand-blue rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-100 transition-all shadow-lg"
-                                    >
-                                        <Plus size={16} /> Add Problem
-                                    </button>
-                                </div>
-
-                                <div className="grid gap-4">
-                                    {moduleProblems.map(prob => (
-                                        <div key={prob.id} className="bg-white p-5 rounded-2xl border border-slate-200 flex items-center justify-between group hover:border-brand-blue/30 transition-all">
-                                            <div>
-                                                <h4 className="font-bold text-slate-800 text-sm mb-1">{prob.title}</h4>
-                                                <p className="text-[10px] text-slate-400 uppercase tracking-wide">{prob.testCases.length} Test Cases • {prob.points} XP</p>
-                                            </div>
-                                            <div className="flex gap-2">
-                                                <button onClick={() => handleEditProblem(prob)} className="p-2 bg-slate-50 hover:bg-brand-blue hover:text-white rounded-lg text-slate-400 transition-colors"><Edit size={14}/></button>
-                                                <button onClick={() => handleDeleteProblem(prob.id)} className="p-2 bg-slate-50 hover:bg-red-500 hover:text-white rounded-lg text-slate-400 transition-colors"><Trash2 size={14}/></button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                    {moduleProblems.length === 0 && (
-                                        <div className="p-12 text-center border-2 border-dashed border-white/20 rounded-3xl text-white/60 text-sm font-medium bg-white/5">
-                                            No problems found for this difficulty tier.
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
+                            ))}
                         </div>
                     </div>
                 )}
 
-                {/* VIEW 3: Editor Panel (Module or Problem) */}
-                {(isEditingModule || isEditingProblem) && (
-                    <div className="fixed inset-0 z-[100] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-6 animate-in fade-in">
-                         <div className="bg-white w-full max-w-2xl max-h-[90vh] rounded-[32px] shadow-2xl overflow-hidden flex flex-col">
-                            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-                                <h3 className="font-black text-brand-blue uppercase tracking-tight text-lg">
-                                    {isEditingModule ? (editingModule.id ? 'Edit Module' : 'Create Module') : (editingProblem.id ? 'Edit Problem' : 'New Problem')}
-                                </h3>
-                                <button onClick={() => { setIsEditingModule(false); setIsEditingProblem(false); }} className="p-2 hover:bg-slate-200 rounded-lg text-slate-400"><Trash2 size={20} className="rotate-45" /></button>
+                {isEditingProblem && (
+                    <div className="fixed inset-0 z-[100] bg-slate-200/40 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in">
+                        <div className="bg-white w-full max-w-5xl max-h-[95vh] rounded-2xl shadow-2xl overflow-hidden flex flex-col border border-slate-200">
+                            <div className="px-8 py-5 border-b border-slate-100 flex items-center justify-between bg-white sticky top-0 z-10">
+                                <h3 className="text-xl font-heading font-black text-slate-800 uppercase tracking-tight">Edit Question</h3>
+                                <button onClick={() => setIsEditingProblem(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors"><X size={24} className="text-slate-400" /></button>
                             </div>
-                            
-                            <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
-                                {isEditingModule ? (
-                                    <form id="moduleForm" onSubmit={handleSaveModule} className="space-y-6">
-                                        <div>
-                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Title</label>
-                                            <input 
-                                                type="text" 
-                                                value={editingModule.title || ''} 
-                                                onChange={e => setEditingModule({...editingModule, title: e.target.value})}
-                                                className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-brand-cyan transition-all"
-                                                required
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Category (Course Name)</label>
-                                            <input 
-                                                type="text" 
-                                                value={editingModule.category || ''} 
-                                                onChange={e => setEditingModule({...editingModule, category: e.target.value})}
-                                                placeholder="e.g. Basic Python Programming"
-                                                className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-brand-cyan transition-all"
-                                                required
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Description</label>
-                                            <textarea 
-                                                value={editingModule.description || ''} 
-                                                onChange={e => setEditingModule({...editingModule, description: e.target.value})}
-                                                className="w-full h-32 p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-600 outline-none focus:border-brand-cyan resize-none transition-all"
-                                                required
-                                            />
-                                        </div>
-                                    </form>
-                                ) : (
-                                    <form id="problemForm" onSubmit={handleSaveProblem} className="space-y-6">
-                                        <div className="grid grid-cols-2 gap-4">
+
+                            <div className="flex-1 overflow-y-auto p-8 custom-scrollbar space-y-10 bg-white">
+                                <form id="mainProblemForm" onSubmit={handleSaveProblem} className="space-y-10">
+                                    <div className="grid grid-cols-2 gap-10">
+                                        <div className="space-y-6">
                                             <div>
-                                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Title</label>
+                                                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">Question Type</label>
+                                                <select className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 outline-none focus:border-[#ff8c00]">
+                                                    <option>Programming</option>
+                                                    <option>Multiple Choice</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">Question Title</label>
                                                 <input 
                                                     type="text" 
                                                     value={editingProblem.title || ''} 
                                                     onChange={e => setEditingProblem({...editingProblem, title: e.target.value})}
-                                                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-brand-cyan"
-                                                    required
+                                                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 outline-none focus:border-[#ff8c00]"
+                                                    placeholder="Print the following output"
                                                 />
                                             </div>
                                             <div>
-                                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">XP Points</label>
+                                                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">Marks</label>
                                                 <input 
                                                     type="number" 
                                                     value={editingProblem.points || 0} 
                                                     onChange={e => setEditingProblem({...editingProblem, points: Number(e.target.value)})}
-                                                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-brand-cyan"
+                                                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 outline-none focus:border-[#ff8c00]"
                                                 />
                                             </div>
                                         </div>
-                                        <div>
-                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Problem Description</label>
+                                        <div className="space-y-6">
+                                            <div>
+                                                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">Level</label>
+                                                <select 
+                                                    value={editingProblem.difficulty} 
+                                                    onChange={e => setEditingProblem({...editingProblem, difficulty: e.target.value as Difficulty})}
+                                                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 outline-none focus:border-[#ff8c00]"
+                                                >
+                                                    <option value="L0">Level - 0</option>
+                                                    <option value="L1">Level - 1</option>
+                                                    <option value="L2">Level - 2</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">Language</label>
+                                                <select className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 outline-none focus:border-[#ff8c00]">
+                                                    <option>English</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <label className="text-[11px] font-black text-slate-800 uppercase tracking-widest">Question Data</label>
+                                        <div className="border border-slate-200 rounded-xl overflow-hidden focus-within:border-[#ff8c00] transition-colors bg-slate-50">
+                                            <RichToolbar />
                                             <textarea 
-                                                value={editingProblem.description || ''} 
+                                                value={editingProblem.description} 
                                                 onChange={e => setEditingProblem({...editingProblem, description: e.target.value})}
-                                                className="w-full h-24 p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-600 outline-none focus:border-brand-cyan resize-none"
-                                                required
+                                                className="w-full h-48 p-4 text-sm text-slate-600 outline-none resize-none bg-transparent"
+                                                placeholder="Enter detailed question statement..."
                                             />
                                         </div>
-                                        <div>
-                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Starter Code</label>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <label className="text-[11px] font-black text-slate-800 uppercase tracking-widest">Input Format</label>
+                                        <div className="border border-slate-200 rounded-xl overflow-hidden focus-within:border-[#ff8c00] transition-colors bg-slate-50">
+                                            <RichToolbar />
                                             <textarea 
-                                                value={editingProblem.starterCode || ''} 
-                                                onChange={e => setEditingProblem({...editingProblem, starterCode: e.target.value})}
-                                                className="w-full h-32 p-3 bg-slate-900 border border-slate-800 rounded-xl text-xs text-cyan-400 font-mono outline-none focus:border-brand-cyan resize-none"
+                                                value={editingProblem.inputFormat} 
+                                                onChange={e => setEditingProblem({...editingProblem, inputFormat: e.target.value})}
+                                                className="w-full h-32 p-4 text-sm text-slate-600 outline-none resize-none bg-transparent"
                                             />
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <label className="text-[11px] font-black text-slate-800 uppercase tracking-widest">Output Format</label>
+                                        <div className="border border-slate-200 rounded-xl overflow-hidden focus-within:border-[#ff8c00] transition-colors bg-slate-50">
+                                            <RichToolbar />
+                                            <textarea 
+                                                value={editingProblem.outputFormat} 
+                                                onChange={e => setEditingProblem({...editingProblem, outputFormat: e.target.value})}
+                                                className="w-full h-32 p-4 text-sm text-slate-600 outline-none resize-none bg-transparent"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <label className="text-[11px] font-black text-slate-800 uppercase tracking-widest">Constraints</label>
+                                        <div className="border border-slate-200 rounded-xl overflow-hidden focus-within:border-[#ff8c00] transition-colors bg-slate-50">
+                                            <RichToolbar />
+                                            <textarea 
+                                                value={editingProblem.constraints} 
+                                                onChange={e => setEditingProblem({...editingProblem, constraints: e.target.value})}
+                                                className="w-full h-32 p-4 text-sm text-slate-600 outline-none resize-none bg-transparent"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <label className="text-[11px] font-black text-slate-800 uppercase tracking-widest">Answer Reference</label>
+                                        <div className="border border-[#ff8c00]/20 rounded-xl overflow-hidden font-mono bg-orange-50/30">
+                                            <div className="px-4 py-2 border-b border-[#ff8c00]/10 flex items-center gap-2">
+                                                <FileCode2 size={14} className="text-[#ff8c00]" />
+                                                <span className="text-[10px] text-[#ff8c00] uppercase tracking-widest font-bold">Solution Reference</span>
+                                            </div>
+                                            <textarea 
+                                                value={editingProblem.sampleAnswer || ''} 
+                                                onChange={e => setEditingProblem({...editingProblem, sampleAnswer: e.target.value})}
+                                                className="w-full h-40 p-4 text-sm text-slate-700 bg-transparent outline-none resize-none"
+                                                spellCheck="false"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-6">
+                                        <div className="flex items-center justify-between">
+                                            <label className="text-[11px] font-black text-slate-800 uppercase tracking-widest">Code Stub</label>
+                                        </div>
+                                        <div className="border border-slate-200 rounded-xl overflow-hidden p-6 space-y-4 bg-slate-50">
+                                            <select className="w-48 p-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-500">
+                                                <option>Python</option>
+                                            </select>
+                                            <textarea 
+                                                value={editingProblem.starterCode}
+                                                onChange={e => setEditingProblem({...editingProblem, starterCode: e.target.value})}
+                                                className="w-full h-32 p-4 bg-white border border-slate-200 rounded-lg outline-none text-xs font-mono text-slate-700"
+                                                placeholder="Enter boiler plate code stub here..."
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-6">
+                                        <div className="flex items-center justify-between">
+                                            <label className="text-[11px] font-black text-slate-800 uppercase tracking-widest">Test cases</label>
+                                            <button 
+                                                type="button" 
+                                                onClick={() => setEditingProblem({...editingProblem, testCases: [...(editingProblem.testCases || []), { input: '', expectedOutput: '', isHidden: false, isSample: false }]})}
+                                                className="px-5 py-2 bg-[#ff8c00] text-white text-[10px] font-bold uppercase tracking-widest rounded-full shadow-md hover:bg-orange-600 transition-colors"
+                                            >
+                                                Add Test case
+                                            </button>
                                         </div>
                                         
-                                        <div className="space-y-3">
-                                            <div className="flex items-center justify-between">
-                                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Test Cases</label>
-                                                <button type="button" onClick={addTestCase} className="text-[10px] font-bold text-brand-blue uppercase tracking-widest hover:text-brand-cyan">+ Add Case</button>
-                                            </div>
+                                        <div className="space-y-4">
                                             {editingProblem.testCases?.map((tc, idx) => (
-                                                <div key={idx} className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2 relative group">
-                                                    <button type="button" onClick={() => removeTestCase(idx)} className="absolute top-2 right-2 text-slate-300 hover:text-red-400"><Trash2 size={12}/></button>
-                                                    <div className="grid grid-cols-2 gap-2">
-                                                        <input 
-                                                            placeholder="Input"
+                                                <div key={idx} className="border border-slate-200 rounded-xl p-8 relative space-y-6 group bg-white shadow-sm">
+                                                    <button 
+                                                        type="button" 
+                                                        onClick={() => setEditingProblem({...editingProblem, testCases: editingProblem.testCases?.filter((_, i) => i !== idx)})}
+                                                        className="absolute top-6 right-6 p-2 text-slate-300 hover:text-red-500 transition-colors"
+                                                    >
+                                                        <Trash2 size={18} />
+                                                    </button>
+
+                                                    <div className="w-1/3">
+                                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 block">Is Sample</label>
+                                                        <select 
+                                                            value={tc.isSample ? 'Yes' : 'No'}
+                                                            onChange={e => {
+                                                                const newTC = [...(editingProblem.testCases || [])];
+                                                                newTC[idx].isSample = e.target.value === 'Yes';
+                                                                setEditingProblem({...editingProblem, testCases: newTC});
+                                                            }}
+                                                            className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 outline-none focus:border-[#ff8c00]"
+                                                        >
+                                                            <option>No</option>
+                                                            <option>Yes</option>
+                                                        </select>
+                                                    </div>
+
+                                                    <div>
+                                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 block">Input Data</label>
+                                                        <textarea 
                                                             value={tc.input}
-                                                            onChange={e => handleTestCaseChange(idx, 'input', e.target.value)}
-                                                            className="p-2 bg-white border border-slate-200 rounded-lg text-xs font-mono"
-                                                        />
-                                                        <input 
-                                                            placeholder="Expected Output"
-                                                            value={tc.expectedOutput}
-                                                            onChange={e => handleTestCaseChange(idx, 'expectedOutput', e.target.value)}
-                                                            className="p-2 bg-white border border-slate-200 rounded-lg text-xs font-mono"
+                                                            onChange={e => {
+                                                                const newTC = [...(editingProblem.testCases || [])];
+                                                                newTC[idx].input = e.target.value;
+                                                                setEditingProblem({...editingProblem, testCases: newTC});
+                                                            }}
+                                                            className="w-full p-4 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 outline-none focus:border-[#ff8c00] h-20 resize-none"
                                                         />
                                                     </div>
-                                                    <label className="flex items-center gap-2 text-[10px] text-slate-500 font-bold uppercase cursor-pointer">
-                                                        <input 
-                                                            type="checkbox" 
-                                                            checked={tc.isHidden} 
-                                                            onChange={e => handleTestCaseChange(idx, 'isHidden', e.target.checked)}
-                                                            className="accent-brand-cyan"
-                                                        /> Hidden Test Case
-                                                    </label>
+
+                                                    <div>
+                                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 block">Output Data</label>
+                                                        <textarea 
+                                                            value={tc.expectedOutput}
+                                                            onChange={e => {
+                                                                const newTC = [...(editingProblem.testCases || [])];
+                                                                newTC[idx].expectedOutput = e.target.value;
+                                                                setEditingProblem({...editingProblem, testCases: newTC});
+                                                            }}
+                                                            className="w-full p-4 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 outline-none focus:border-[#ff8c00] h-20 resize-none"
+                                                        />
+                                                    </div>
                                                 </div>
                                             ))}
                                         </div>
-                                    </form>
-                                )}
-                            </div>
+                                    </div>
 
-                            <div className="p-6 border-t border-slate-100 bg-slate-50 flex gap-4">
-                                <button 
-                                    onClick={() => isEditingModule ? document.getElementById('moduleForm')?.dispatchEvent(new Event('submit', {cancelable: true, bubbles: true})) : document.getElementById('problemForm')?.dispatchEvent(new Event('submit', {cancelable: true, bubbles: true}))}
-                                    className="flex-1 py-4 bg-brand-blue text-white rounded-xl font-black text-xs uppercase tracking-widest hover:bg-brand-cyan transition-all shadow-lg"
-                                >
-                                    Save Changes
-                                </button>
-                                <button onClick={() => { setIsEditingModule(false); setIsEditingProblem(false); }} className="px-8 py-4 bg-white border border-slate-200 text-slate-500 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-50">
-                                    Cancel
-                                </button>
+                                    <div className="flex justify-end pt-10">
+                                        <button 
+                                            type="submit"
+                                            className="px-10 py-3 bg-[#ff8c00] text-white font-black text-xs uppercase tracking-[0.2em] rounded-xl shadow-xl hover:scale-105 transition-transform"
+                                        >
+                                            Submit Changes
+                                        </button>
+                                    </div>
+                                </form>
                             </div>
-                         </div>
+                        </div>
                     </div>
                 )}
              </div>
           )}
           
           {activeTab === 'telemetry' && (
-            <div className="flex flex-col items-center justify-center h-full space-y-6 opacity-30 animate-pulse text-white">
-               <div className="w-20 h-20 bg-white/20 rounded-3xl flex items-center justify-center text-white">
-                  <BarChart3 size={40} />
-               </div>
-               <span className="text-[11px] font-black uppercase tracking-[1em] text-white">Telemetry Stream Initializing...</span>
+            <div className="flex flex-col items-center justify-center h-full space-y-4 text-slate-300">
+               <BarChart3 size={48} className="animate-pulse" />
+               <p className="font-bold text-xs uppercase tracking-widest text-slate-400">Awaiting Registry Sync...</p>
             </div>
           )}
-          
-          {activeTab === 'personnel' && (
-            <div className="flex flex-col items-center justify-center h-full space-y-6 opacity-30 animate-pulse text-white">
-               <div className="w-20 h-20 bg-white/20 rounded-3xl flex items-center justify-center text-white">
-                  <Users size={40} />
-               </div>
-               <span className="text-[11px] font-black uppercase tracking-[1em] text-white">Registry Loading...</span>
-            </div>
-          )}
-          
-          {activeTab === 'community' && <CommunityChat currentUser={user} />}
         </main>
       </div>
     </div>

@@ -5,7 +5,7 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>TechNexus Academy | Professional Training</title>
+    <title>TechNexus Academy | Industrial Examination Portal</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -22,16 +22,12 @@
             },
             colors: {
               brand: {
-                bg: '#f1f1f2',
-                cyan: '#00bbd6',
-                blue: '#237194',
-                orange: '#faa32b',
-                // Compatibility mapping for existing components
-                'night': '#f1f1f2',
-                'navy-dark': '#237194',
-                'forest-dark': '#1a5570',
-                'gold': '#faa32b',
-                'green': '#00bbd6'
+                bg: '#f3f4f6',
+                cyan: '#0ea5e9',
+                blue: '#1e293b',
+                orange: '#ff8c00',
+                amber: '#f59e0b',
+                navy: '#0f172a',
               }
             }
           }
@@ -40,47 +36,25 @@
     </script>
     <style>
       html { scroll-behavior: smooth; }
-      body { background-color: #faa32b; color: #1e293b; }
+      body { background-color: #f3f4f6; color: #1e293b; margin: 0; }
       ::-webkit-scrollbar { width: 6px; height: 6px; }
-      ::-webkit-scrollbar-track { background: #f1f1f2; }
+      ::-webkit-scrollbar-track { background: #f1f5f9; }
       ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-      ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-
-      .glass-card {
-        background: rgba(255, 255, 255, 0.7);
-        backdrop-filter: blur(12px);
-        border: 1px solid rgba(35, 113, 148, 0.1);
-        box-shadow: 0 10px 30px -10px rgba(0,0,0,0.05);
-      }
       
-      .student-theme-gradient {
-        background: radial-gradient(circle at top right, rgba(0, 187, 214, 0.08), transparent 40%),
-                    radial-gradient(circle at bottom left, rgba(250, 163, 43, 0.05), transparent 40%);
-      }
-
-      .admin-theme-gradient {
-        background: radial-gradient(circle at top right, rgba(35, 113, 148, 0.12), transparent 40%),
-                    radial-gradient(circle at bottom left, rgba(250, 163, 43, 0.05), transparent 40%);
+      .industrial-header {
+        background: #ffffff;
+        border-bottom: 2px solid #e2e8f0;
       }
 
       .btn-orange {
-        background: linear-gradient(135deg, #faa32b 0%, #e08a1d 100%);
-        box-shadow: 0 4px 15px rgba(250, 163, 43, 0.2);
-        transition: all 0.3s ease;
+        background: #ff8c00;
+        color: white;
+        transition: all 0.2s ease;
       }
-      .btn-orange:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(250, 163, 43, 0.3);
-      }
-
-      .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-      .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(35, 113, 148, 0.2); border-radius: 10px; }
+      .btn-orange:hover { background: #e67e00; }
       
-      .bg-grid-pattern {
-        background-image: radial-gradient(#237194 0.5px, transparent 0.5px);
-        background-size: 24px 24px;
-        opacity: 0.05;
-      }
+      .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+      .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
   <script type="importmap">
 {
@@ -94,7 +68,7 @@
 }
 </script>
 </head>
-  <body class="text-slate-800 antialiased font-sans">
+  <body class="antialiased font-sans overflow-hidden">
     <div id="root"></div>
   </body>
 </html>

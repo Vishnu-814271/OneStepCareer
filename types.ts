@@ -1,11 +1,51 @@
 
 export type Role = 'ADMIN' | 'STUDENT' | 'GUEST';
-export type Difficulty = 'L0' | 'L1' | 'L2' | 'GRAND'; // Added GRAND difficulty
+export type Difficulty = 'L0' | 'L1' | 'L2' | 'GRAND';
 
 export interface GlobalSettings {
   tabSwitchLimit: number;
+  offScreenLimit: number; // Added
   allowCopyPaste: boolean;
   standardTimeLimit: number; // in seconds
+  multipleAttempts: boolean; // Added
+  maxAttempts: number; // Added
+  scoreVisibility: boolean; // Added
+  viewSolution: boolean; // Added
+}
+
+export interface TestCase {
+  input: string;
+  expectedOutput: string;
+  isHidden: boolean;
+  isSample?: boolean; // Added
+}
+
+// Added Course interface to fix import error in CourseCard.tsx
+export interface Course {
+  id: string;
+  title: string;
+  description: string;
+  image: string;
+  level: string;
+  lessons: number;
+  duration: string;
+}
+
+export interface Problem {
+  id: string;
+  title: string;
+  description: string; // "Question Data"
+  inputFormat?: string; // Added
+  outputFormat?: string; // Added
+  constraints?: string; // Added
+  language: string; // Principal Language
+  allowedLanguages?: string[]; // Added for multi-lang support
+  difficulty: Difficulty;
+  starterCode: string; // "Code Stub"
+  sampleAnswer?: string; // Added
+  testCases: TestCase[];
+  module?: string;
+  points?: number; // "Marks"
 }
 
 export interface User {
@@ -19,8 +59,8 @@ export interface User {
   joinedDate?: Date;
   score?: number;
   completedProblems?: string[];
-  completedGrandTests?: string[]; // Array of Languages (e.g. ['Python'])
-  unlockedProjects?: string[]; // Array of Languages
+  completedGrandTests?: string[];
+  unlockedProjects?: string[];
 }
 
 export interface CommunityMessage {
@@ -30,24 +70,6 @@ export interface CommunityMessage {
   userRole: Role;
   text: string;
   timestamp: string;
-}
-
-export interface TestCase {
-  input: string;
-  expectedOutput: string;
-  isHidden: boolean;
-}
-
-export interface Problem {
-  id: string;
-  title: string;
-  description: string;
-  language: string;
-  difficulty: Difficulty;
-  starterCode: string;
-  testCases: TestCase[];
-  module?: string;
-  points?: number;
 }
 
 export interface ProjectDefinition {
@@ -89,33 +111,15 @@ export interface AssessmentSummary {
   warningsCount: number;
 }
 
-export interface Course {
-  id: string;
-  title: string;
-  description: string;
-  image: string;
-  level: string;
-  lessons: number;
-  duration: string;
-}
-
 export interface CourseModule {
   id: string;
   title: string;
   language: string;
-  category: string; // Added category for hierarchy
+  category: string;
   description: string;
   icon?: string;
 }
 
-export interface ChatMessage {
-  id: string;
-  text: string;
-  sender: string;
-  timestamp: Date;
-}
-
-// --- NEW RESUME TYPES ---
 export interface ResumeData {
   personalInfo: {
     fullName: string;
@@ -126,7 +130,7 @@ export interface ResumeData {
     role: string;
   };
   summary: string;
-  achievements: string[]; // Added achievements array
+  achievements: string[];
   skills: {
     technical: string[];
     soft: string[];
