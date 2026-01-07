@@ -1,26 +1,25 @@
 
-export type Role = 'ADMIN' | 'STUDENT' | 'GUEST';
+export type Role = 'ADMIN' | 'STUDENT' | 'GUEST' | 'FACULTY';
 export type Difficulty = 'L0' | 'L1' | 'L2' | 'GRAND';
 
 export interface GlobalSettings {
   tabSwitchLimit: number;
-  offScreenLimit: number; // Added
+  offScreenLimit: number;
   allowCopyPaste: boolean;
-  standardTimeLimit: number; // in seconds
-  multipleAttempts: boolean; // Added
-  maxAttempts: number; // Added
-  scoreVisibility: boolean; // Added
-  viewSolution: boolean; // Added
+  standardTimeLimit: number;
+  multipleAttempts: boolean;
+  maxAttempts: number;
+  scoreVisibility: boolean;
+  viewSolution: boolean;
 }
 
 export interface TestCase {
   input: string;
   expectedOutput: string;
   isHidden: boolean;
-  isSample?: boolean; // Added
+  isSample?: boolean;
 }
 
-// Added Course interface to fix import error in CourseCard.tsx
 export interface Course {
   id: string;
   title: string;
@@ -34,18 +33,18 @@ export interface Course {
 export interface Problem {
   id: string;
   title: string;
-  description: string; // "Question Data"
-  inputFormat?: string; // Added
-  outputFormat?: string; // Added
-  constraints?: string; // Added
-  language: string; // Principal Language
-  allowedLanguages?: string[]; // Added for multi-lang support
+  description: string; 
+  inputFormat?: string; 
+  outputFormat?: string; 
+  constraints?: string; 
+  language: string; 
+  allowedLanguages?: string[]; 
   difficulty: Difficulty;
-  starterCode: string; // "Code Stub"
-  sampleAnswer?: string; // Added
+  starterCode: string; 
+  sampleAnswer?: string; 
   testCases: TestCase[];
   module?: string;
-  points?: number; // "Marks"
+  points?: number; 
 }
 
 export interface User {
@@ -53,6 +52,8 @@ export interface User {
   name: string;
   role: Role;
   email: string;
+  password?: string;
+  college?: string; // Links student to a faculty/college
   isPaid?: boolean;
   plan?: 'STUDENT' | 'PROFESSIONAL';
   paymentStatus?: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED' | 'NONE';
@@ -93,9 +94,11 @@ export interface ProblemAnalysis {
   problemId: string;
   title: string;
   score: number;
+  maxScore: number;
   isPerfect: boolean;
   testResults: TestResult[];
   referenceCode?: string;
+  status: 'CORRECT' | 'WRONG' | 'SKIPPED';
 }
 
 export interface AssessmentSummary {
@@ -120,39 +123,10 @@ export interface CourseModule {
   icon?: string;
 }
 
-export interface ResumeData {
-  personalInfo: {
-    fullName: string;
-    email: string;
-    phone: string;
-    location: string;
-    linkedin: string;
-    role: string;
-  };
-  summary: string;
-  achievements: string[];
-  skills: {
-    technical: string[];
-    soft: string[];
-    tools: string[];
-  };
-  experience: {
-    id: number;
-    role: string;
-    company: string;
-    date: string;
-    bullets: string[];
-  }[];
-  education: {
-    id: number;
-    degree: string;
-    school: string;
-    date: string;
-  }[];
-  projects: {
-    id: number;
-    name: string;
-    description: string;
-    techStack: string;
-  }[];
+export interface LearningRecommendation {
+  recommendedModule: string;
+  targetLanguage: string;
+  reasoning: string;
+  estimatedEffort: string;
+  focusArea: string;
 }

@@ -1,15 +1,24 @@
 
 import { GoogleGenAI } from "@google/genai";
-import { TestCase, TestResult, ResumeData } from "../types";
+import { TestCase, TestResult, User, CourseModule, LearningRecommendation } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Lazy initialization to prevent crash on startup if API key is missing
+let aiInstance: GoogleGenAI | null = null;
+
+const getAi = () => {
+  if (!aiInstance) {
+    // Fallback to empty string to prevent constructor error, though API calls will fail without valid key
+    aiInstance = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+  }
+  return aiInstance;
+};
 
 export const generateTutorResponse = async (
   prompt: string, 
   context: string = ""
 ): Promise<string> => {
   try {
-    const response = await ai.models.generateContent({
+    const response = await getAi().models.generateContent({
       model: 'gemini-3-pro-preview',
       contents: `Course Context: ${context}\nUser Question: ${prompt}`,
       config: {
@@ -19,7 +28,7 @@ export const generateTutorResponse = async (
     return response.text || "I couldn't generate a response.";
   } catch (error) {
     console.error("Gemini API Error:", error);
-    return "Error generating response.";
+    return "Error generating response. Please check your API Key configuration.";
   }
 };
 
@@ -29,7 +38,7 @@ export const runCodeSimulation = async (
   inputData: string = ""
 ): Promise<string> => {
   try {
-    const response = await ai.models.generateContent({
+    const response = await getAi().models.generateContent({
       model: 'gemini-3-pro-preview',
       contents: `LANGUAGE: ${language}\n\nCODE TO EXECUTE:\n\`\`\`${language}\n${code}\n\`\`\`\n\nSTANDARD INPUT (stdin):\n${inputData}`,
       config: {
@@ -51,7 +60,7 @@ export const runCodeSimulation = async (
     return response.text || "No output.";
   } catch (error) {
     console.error("Execution error:", error);
-    return "ERROR: Internal Terminal Error\nDEBUG_TIP: The AI execution engine is currently throttled. Try again in a few moments.";
+    return "ERROR: Internal Terminal Error\nDEBUG_TIP: The AI execution engine is currently throttled or API key is missing. Try again in a few moments.";
   }
 };
 
@@ -63,7 +72,7 @@ export const validateSolution = async (
   try {
     const prompt = `Language: ${language}\nUser Code:\n\`\`\`${language}\n${code}\n\`\`\`\n\nTest Cases:\n${JSON.stringify(testCases.map((tc, i) => ({ id: i, input: tc.input, expected: tc.expectedOutput })))}`;
 
-    const response = await ai.models.generateContent({
+    const response = await getAi().models.generateContent({
       model: 'gemini-3-pro-preview',
       contents: prompt,
       config: { 
@@ -87,10 +96,25 @@ export const validateSolution = async (
     });
 
     const resultText = response.text || "{ \"results\": [], \"referenceCode\": \"\" }";
-    const parsed = JSON.parse(resultText);
+    let parsed;
+    try {
+        parsed = JSON.parse(resultText);
+    } catch (e) {
+        // Fallback if JSON is malformed
+        return { 
+           results: testCases.map(tc => ({
+             input: tc.input,
+             expectedOutput: tc.expectedOutput,
+             actualOutput: "Judge Error: Invalid AI Response",
+             passed: false,
+             isHidden: tc.isHidden
+           })), 
+           referenceCode: "// Error parsing AI response" 
+        };
+    }
     
     const results = testCases.map((tc, index) => {
-      const judgeResult = parsed.results.find((r: any) => r.id === index);
+      const judgeResult = parsed.results ? parsed.results.find((r: any) => r.id === index) : null;
       return {
         input: tc.input,
         expectedOutput: tc.expectedOutput,
@@ -118,42 +142,45 @@ export const validateSolution = async (
   }
 };
 
-export const generateATSResume = async (
-  rawProfile: string,
-  jobDescription: string
-): Promise<ResumeData | null> => {
+export const getLearningRecommendation = async (
+  user: User,
+  availableModules: CourseModule[]
+): Promise<LearningRecommendation | null> => {
   try {
-    const response = await ai.models.generateContent({
+    const response = await getAi().models.generateContent({
       model: 'gemini-3-pro-preview',
-      contents: `CANDIDATE PROFILE:\n${rawProfile}\n\nTARGET JOB DESCRIPTION:\n${jobDescription}`,
+      contents: `User Profile:
+      - Current Score: ${user.score} XP
+      - Plan: ${user.plan || 'Free'}
+      - Completed Problems Count: ${user.completedProblems?.length || 0}
+      
+      Available Modules in Curriculum:
+      ${JSON.stringify(availableModules.map(m => ({ title: m.title, language: m.language, category: m.category })))}
+      
+      TASK: 
+      Analyze the student's progress. Select the single best next Course Module they should focus on to advance their career.
+      If they are new (score 0), suggest a foundational module.
+      If they have some XP, suggest an intermediate one.
+      
+      Return JSON:
+      {
+        "recommendedModule": "Exact Title of the module",
+        "targetLanguage": "Language of the module",
+        "reasoning": "Why this is the best next step (2 sentences max)",
+        "estimatedEffort": "e.g., 2 Hours",
+        "focusArea": "e.g., Algorithmic Logic, Syntax, etc."
+      }`,
       config: {
-        responseMimeType: 'application/json',
-        systemInstruction: `You are a Senior Career Coach and ATS Expert.
-        
-        Analyze the candidate profile and the Job Description (JD).
-        Create a tailored resume structure that highlights the most relevant skills and experience matching the JD.
-        
-        Return STRICT JSON matching this interface:
-        {
-          "personalInfo": { "fullName": string, "email": string, "phone": string, "location": string, "linkedin": string, "role": string },
-          "summary": string (Professional summary, max 3 sentences, keyword rich),
-          "achievements": string[] (List of 3-4 significant key achievements or awards),
-          "skills": { "technical": string[], "soft": string[], "tools": string[] },
-          "experience": [{ "id": number, "role": string, "company": string, "date": string, "bullets": string[] (3-4 strong achievements per role) }],
-          "education": [{ "id": number, "degree": string, "school": string, "date": string }],
-          "projects": [{ "id": number, "name": string, "description": string, "techStack": string }]
-        }
-        
-        Ensure "bullets" use strong action verbs (Engineered, Optimized, Deployed).`,
+        responseMimeType: 'application/json'
       }
     });
-    
+
     if (response.text) {
-        return JSON.parse(response.text) as ResumeData;
+      return JSON.parse(response.text) as LearningRecommendation;
     }
     return null;
   } catch (error) {
-    console.error("Resume Generation Error:", error);
+    console.error("Recommendation Error:", error);
     return null;
   }
 };

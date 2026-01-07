@@ -23,7 +23,7 @@ const PaymentGateway: React.FC<PaymentGatewayProps> = ({ user, onPaymentComplete
     if (user.paymentStatus === 'PENDING_APPROVAL') {
        const interval = setInterval(() => {
           checkStatusSilent();
-       }, 1000); // Check every 1 second for faster response
+       }, 2000); // Check every 2 seconds
        return () => clearInterval(interval);
     }
   }, [user.paymentStatus, user.id]);
@@ -34,7 +34,7 @@ const PaymentGateway: React.FC<PaymentGatewayProps> = ({ user, onPaymentComplete
        if (freshUser.paymentStatus === 'APPROVED' && freshUser.isPaid) {
           onPaymentComplete(freshUser);
        } else if (freshUser.paymentStatus === 'REJECTED') {
-          onPaymentComplete(freshUser);
+          onPaymentComplete(freshUser); // Trigger re-render to show rejected screen
        }
     }
   };
@@ -50,9 +50,6 @@ const PaymentGateway: React.FC<PaymentGatewayProps> = ({ user, onPaymentComplete
              onPaymentComplete(freshUser);
           } else if (freshUser.paymentStatus === 'REJECTED') {
              onPaymentComplete(freshUser);
-          } else {
-             // Optional: visual feedback that we checked but still pending
-             console.log("Still pending...");
           }
        }
     }, 500);
@@ -105,6 +102,7 @@ const PaymentGateway: React.FC<PaymentGatewayProps> = ({ user, onPaymentComplete
             {isRejected ? (
                <button 
                   onClick={() => {
+                     // Reset user status to allow retry if needed, or logout
                      if(onLogout) onLogout();
                   }}
                   className="w-full py-3 bg-red-600 hover:bg-red-500 text-white rounded-lg font-bold transition-colors"

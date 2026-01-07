@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Play, ChevronLeft, ChevronRight, CheckCircle, X, ChevronDown, Flag, RotateCcw, Terminal, ShieldCheck, Info, Search } from 'lucide-react';
+import { Play, ChevronLeft, ChevronRight, CheckCircle, X, ChevronDown, Flag, RotateCcw, Terminal, ShieldCheck, Info, Search, AlertTriangle } from 'lucide-react';
 import { runCodeSimulation, validateSolution } from '../services/geminiService';
 import { dataService } from '../services/dataService';
 import { Problem, AssessmentSummary, User, GlobalSettings, ProblemAnalysis, TestResult } from '../types';
@@ -28,6 +28,7 @@ const CodeLab: React.FC<CodeLabProps> = ({ problemSet = [], onExit, currentUser 
   const [testResults, setTestResults] = useState<{ [id: string]: TestResult[] }>({});
   const [isSubmittingQuestion, setIsSubmittingQuestion] = useState(false);
   const [showResultsOverlay, setShowResultsOverlay] = useState(false);
+  const [executionError, setExecutionError] = useState<string | null>(null);
 
   const solutionsRef = useRef(solutions);
   useEffect(() => {
@@ -70,17 +71,24 @@ const CodeLab: React.FC<CodeLabProps> = ({ problemSet = [], onExit, currentUser 
     setSolutions(prev => ({ ...prev, [activeProblem.id]: activeProblem.starterCode }));
     setTestResults(prev => ({ ...prev, [activeProblem.id]: [] }));
     setStatus(prev => ({ ...prev, [activeProblem.id]: 'not-answered' }));
+    setOutput('');
+    setExecutionError(null);
   };
 
   const handleSubmitQuestion = async () => {
     if (isSubmittingQuestion) return;
     setIsSubmittingQuestion(true);
     setShowResultsOverlay(true);
+    setExecutionError(null);
     setOutput('>>> RUNNING COMPREHENSIVE TEST SUITE...\n');
 
     try {
       const { results } = await validateSolution(solutions[activeProblem.id], activeProblem.language, activeProblem.testCases);
       
+      if (results.length === 0 || results[0].actualOutput === "Judge Error") {
+         throw new Error("Validation Service Unreachable");
+      }
+
       setTestResults(prev => ({ ...prev, [activeProblem.id]: results }));
       
       const allPassed = results.every(r => r.passed);
@@ -93,7 +101,8 @@ const CodeLab: React.FC<CodeLabProps> = ({ problemSet = [], onExit, currentUser 
       }
     } catch (error) {
       console.error("Submission failed", error);
-      setOutput(prev => prev + '>>> ERROR IN TEST RUNNER. PLEASE RETRY.\n');
+      setExecutionError("Unable to connect to Evaluation Engine. Please check your network or API quota.");
+      setOutput(prev => prev + '>>> SYSTEM ERROR: Execution Halted.\n');
     } finally {
       setIsSubmittingQuestion(false);
     }
@@ -112,13 +121,27 @@ const CodeLab: React.FC<CodeLabProps> = ({ problemSet = [], onExit, currentUser 
         
         const isPerfect = passedCount === totalCount && totalCount > 0;
         
+        // Determine status: SKIPPED, WRONG, or CORRECT
+        const hasCodeChanged = currentSolutions[prob.id].trim() !== prob.starterCode.trim();
+        let analysisStatus: 'CORRECT' | 'WRONG' | 'SKIPPED' = 'SKIPPED';
+        
+        if (isPerfect) {
+            analysisStatus = 'CORRECT';
+        } else if (hasCodeChanged) {
+            analysisStatus = 'WRONG';
+        } else {
+            analysisStatus = 'SKIPPED';
+        }
+
         return {
           problemId: prob.id,
           title: prob.title,
           score: isPerfect ? (prob.points || 0) : 0,
+          maxScore: prob.points || 0,
           isPerfect,
           testResults: results,
-          referenceCode: referenceCode
+          referenceCode: referenceCode,
+          status: analysisStatus
         } as ProblemAnalysis;
       });
 
@@ -147,6 +170,7 @@ const CodeLab: React.FC<CodeLabProps> = ({ problemSet = [], onExit, currentUser 
       setViewState('analysis');
     } catch (error) {
       console.error("Submission error", error);
+      alert("Error finalizing exam. Please try again.");
     } finally {
       setIsSubmittingExam(false);
     }
@@ -181,9 +205,16 @@ const CodeLab: React.FC<CodeLabProps> = ({ problemSet = [], onExit, currentUser 
 
   const runCodeOnly = async () => {
     setIsRunning(true);
-    const result = await runCodeSimulation(solutions[activeProblem.id], activeProblem.language, activeProblem.testCases[0]?.input || "");
-    setOutput(result);
-    setIsRunning(false);
+    setExecutionError(null);
+    try {
+        const result = await runCodeSimulation(solutions[activeProblem.id], activeProblem.language, activeProblem.testCases[0]?.input || "");
+        setOutput(result);
+    } catch (e) {
+        setOutput("Error: Execution Service Failed.");
+        setExecutionError("The execution engine is currently unavailable.");
+    } finally {
+        setIsRunning(false);
+    }
   };
 
   const getStatusSummary = () => {
@@ -252,6 +283,16 @@ const CodeLab: React.FC<CodeLabProps> = ({ problemSet = [], onExit, currentUser 
 
         {/* Center Panel - Code Editor (Middle on Mobile, Center on Desktop) */}
         <div className="flex-1 bg-[#dcdcdc] flex flex-col p-2 md:p-6 gap-2 md:gap-6 overflow-hidden min-h-0">
+           
+           {/* Error Banner */}
+           {executionError && (
+              <div className="bg-red-500 text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
+                 <AlertTriangle size={14} fill="white" className="text-red-600"/>
+                 {executionError}
+                 <button onClick={() => setExecutionError(null)} className="ml-auto"><X size={14}/></button>
+              </div>
+           )}
+
            <div className="flex-1 bg-white border border-black/10 rounded-xl flex flex-col overflow-hidden shadow-xl relative min-h-0">
               <div className="h-10 md:h-12 border-b border-black/5 flex items-center justify-between px-4 bg-[#f9fafb] shrink-0">
                  <span className="text-[10px] md:text-xs font-bold text-slate-500">Enter your code here</span>

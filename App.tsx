@@ -3,6 +3,8 @@ import React, { useState, useEffect } from 'react';
 import BookAuth from './components/BookAuth';
 import StudentDashboard from './components/StudentDashboard';
 import AdminDashboard from './components/AdminDashboard';
+import FacultyDashboard from './components/FacultyDashboard';
+import PaymentGateway from './components/PaymentGateway';
 import { User } from './types';
 
 const App: React.FC = () => {
@@ -36,17 +38,25 @@ const App: React.FC = () => {
     );
   }
 
-  return (
-    <div className="font-sans antialiased bg-[#f1f1f2] text-slate-800">
-      {!user ? (
-        <BookAuth onLogin={handleLogin} />
-      ) : user.role === 'ADMIN' ? (
-        <AdminDashboard user={user} onLogout={handleLogout} />
-      ) : (
-        <StudentDashboard user={user} onLogout={handleLogout} />
-      )}
-    </div>
-  );
+  if (!user) {
+    return <BookAuth onLogin={handleLogin} />;
+  }
+
+  // Check for Payment Status if user is a Student
+  if (user.role === 'STUDENT' && (!user.isPaid || user.paymentStatus !== 'APPROVED')) {
+     return <PaymentGateway user={user} onPaymentComplete={handleLogin} onLogout={handleLogout} />;
+  }
+
+  // Role Based Routing
+  if (user.role === 'ADMIN') {
+     return <AdminDashboard user={user} onLogout={handleLogout} />;
+  }
+
+  if (user.role === 'FACULTY') {
+     return <FacultyDashboard user={user} onLogout={handleLogout} />;
+  }
+
+  return <StudentDashboard user={user} onLogout={handleLogout} />;
 };
 
 export default App;

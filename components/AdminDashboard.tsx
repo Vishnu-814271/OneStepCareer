@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { User, GlobalSettings, CourseModule, Problem, Difficulty, TestCase } from '../types';
-import { LogOut, Users, BarChart3, ShieldCheck, Settings, Save, Lock, Smartphone, LayoutGrid, MessageSquare, AlertCircle, ShieldAlert, Clock, BookOpen, Plus, Trash2, Edit, ChevronRight, ArrowLeft, Code2, CheckSquare, Layers, Folder, X, Bold, Italic, Underline, AlignLeft, List, Type, FileCode2 } from 'lucide-react';
+import { LogOut, Users, BarChart3, ShieldCheck, Settings, Save, Lock, Smartphone, LayoutGrid, MessageSquare, AlertCircle, ShieldAlert, Clock, BookOpen, Plus, Trash2, Edit, ChevronRight, ArrowLeft, Code2, CheckSquare, Layers, Folder, X, Bold, Italic, Underline, AlignLeft, List, Type, FileCode2, UploadCloud, FileSpreadsheet, CheckCircle, XCircle } from 'lucide-react';
 import { dataService } from '../services/dataService';
 import CommunityChat from './CommunityChat';
 
@@ -12,7 +12,6 @@ interface AdminDashboardProps {
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
   const [activeTab, setActiveTab] = useState<'telemetry' | 'security' | 'personnel' | 'community' | 'academy'>('telemetry');
-  const [settings, setSettings] = useState<GlobalSettings>(dataService.getSettings());
   
   const [selectedLanguage, setSelectedLanguage] = useState<string>('Python');
   const [modules, setModules] = useState<CourseModule[]>([]);
@@ -25,6 +24,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
   const [isEditingProblem, setIsEditingProblem] = useState<boolean>(false);
   const [editingProblem, setEditingProblem] = useState<Partial<Problem>>({});
 
+  // Bulk Upload State
+  const [csvData, setCsvData] = useState('');
+  const [uploadStatus, setUploadStatus] = useState('');
+  
+  // Student Registry State
+  const [allStudents, setAllStudents] = useState<User[]>([]);
+
   useEffect(() => {
     setModules(dataService.getModulesByLanguage(selectedLanguage));
     setActiveModule(null);
@@ -33,6 +39,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
   useEffect(() => {
     if (activeModule) loadProblems(activeModule);
   }, [activeModule, selectedDifficulty]);
+  
+  useEffect(() => {
+     if(activeTab === 'personnel') {
+        const users = dataService.getUsers().filter(u => u.role === 'STUDENT');
+        setAllStudents(users);
+     }
+  }, [activeTab]);
+
+  const refreshStudents = () => {
+    const users = dataService.getUsers().filter(u => u.role === 'STUDENT');
+    setAllStudents(users);
+  };
 
   const loadProblems = (module: CourseModule) => {
      const allProblems = dataService.getProblemsByModule(module.language, module.title);
@@ -90,6 +108,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
   const handleSaveProblem = (e: React.FormEvent) => {
      e.preventDefault();
      if (editingProblem.title && activeModule) {
+        // Ensure module is set correctly
+        editingProblem.module = activeModule.title;
+        
         if (dataService.getProblems().find(p => p.id === editingProblem.id)) {
            dataService.updateProblem(editingProblem as Problem);
         } else {
@@ -100,17 +121,50 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
      }
   };
 
-  const RichToolbar = () => (
-    <div className="flex items-center gap-2 px-3 py-1.5 border-b border-slate-200 bg-slate-50 overflow-x-auto">
-       <Bold size={14} className="text-slate-400 cursor-pointer hover:text-slate-900 shrink-0" />
-       <Italic size={14} className="text-slate-400 cursor-pointer hover:text-slate-900 shrink-0" />
-       <Underline size={14} className="text-slate-400 cursor-pointer hover:text-slate-900 shrink-0" />
-       <Type size={14} className="text-slate-400 cursor-pointer hover:text-slate-900 ml-2 shrink-0" />
-       <div className="w-px h-4 bg-slate-200 mx-2 shrink-0"></div>
-       <AlignLeft size={14} className="text-slate-400 cursor-pointer hover:text-slate-900 shrink-0" />
-       <List size={14} className="text-slate-400 cursor-pointer hover:text-slate-900 shrink-0" />
-    </div>
-  );
+  const handleBulkUpload = () => {
+    if(!csvData.trim()) return;
+    
+    // Parse CSV: Name,Email,Password,College
+    const lines = csvData.split('\n');
+    const usersToRegister = [];
+    
+    for(let line of lines) {
+        const [name, email, password, college] = line.split(',');
+        if(name && email && password && college) {
+            usersToRegister.push({
+                name: name.trim(),
+                email: email.trim(),
+                password: password.trim(),
+                college: college.trim()
+            });
+        }
+    }
+
+    if(usersToRegister.length > 0) {
+        const count = dataService.bulkRegisterUsers(usersToRegister);
+        setUploadStatus(`Successfully registered ${count} new students.`);
+        setCsvData('');
+        refreshStudents();
+    } else {
+        setUploadStatus('Invalid Data Format. Use: Name,Email,Password,College');
+    }
+
+    setTimeout(() => setUploadStatus(''), 5000);
+  };
+  
+  const approveStudent = (id: string) => {
+      if(window.confirm('Approve payment and grant access?')) {
+          dataService.approvePayment(id);
+          refreshStudents();
+      }
+  };
+
+  const rejectStudent = (id: string) => {
+      if(window.confirm('Reject payment request?')) {
+          dataService.rejectPayment(id);
+          refreshStudents();
+      }
+  };
 
   const groupedModules = modules.reduce((acc, mod) => {
       if (!acc[mod.category]) acc[mod.category] = [];
@@ -119,7 +173,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
   }, {} as Record<string, CourseModule[]>);
 
   return (
-    <div className="min-h-screen bg-[#f3f4f6] flex flex-col">
+    <div className="min-h-screen bg-[#f3f4f6] flex flex-col font-sans">
       <nav className="h-16 md:h-20 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-10 shrink-0 z-20 shadow-sm">
         <div className="flex items-center gap-4">
           <div className="w-9 h-9 md:w-11 md:h-11 bg-[#ff8c00] rounded-xl flex items-center justify-center font-black text-white shadow-lg text-xs md:text-base">NC</div>
@@ -139,6 +193,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
                 </button>
                 <button onClick={() => setActiveTab('academy')} className={`w-auto md:w-full text-left px-5 py-3 rounded-xl flex items-center gap-3 transition-all whitespace-nowrap ${activeTab === 'academy' ? 'bg-[#ff8c00] text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50'}`}>
                   <BookOpen size={18} /> <span className="text-xs font-bold uppercase tracking-wider">Curriculum</span>
+                </button>
+                <button onClick={() => setActiveTab('personnel')} className={`w-auto md:w-full text-left px-5 py-3 rounded-xl flex items-center gap-3 transition-all whitespace-nowrap ${activeTab === 'personnel' ? 'bg-[#ff8c00] text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50'}`}>
+                  <Users size={18} /> <span className="text-xs font-bold uppercase tracking-wider">Personnel</span>
                 </button>
              </div>
         </aside>
@@ -199,238 +256,129 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
                                     <button onClick={() => handleEditProblem(p)} className="p-2 text-slate-300 hover:text-[#ff8c00] transition-colors"><Edit size={16}/></button>
                                 </div>
                             ))}
+                            {moduleProblems.length === 0 && (
+                                <div className="p-8 text-center text-slate-400 italic">No problems added for this difficulty yet.</div>
+                            )}
                         </div>
                     </div>
                 )}
 
-                {isEditingProblem && (
-                    <div className="fixed inset-0 z-[100] bg-slate-200/40 backdrop-blur-md flex items-center justify-center p-0 md:p-6 animate-in fade-in">
-                        <div className="bg-white w-full max-w-5xl h-full md:max-h-[95vh] md:rounded-2xl shadow-2xl overflow-hidden flex flex-col border border-slate-200">
-                            <div className="px-4 md:px-8 py-5 border-b border-slate-100 flex items-center justify-between bg-white sticky top-0 z-10">
-                                <h3 className="text-lg md:text-xl font-heading font-black text-slate-800 uppercase tracking-tight">Edit Question</h3>
-                                <button onClick={() => setIsEditingProblem(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors"><X size={24} className="text-slate-400" /></button>
-                            </div>
-
-                            <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar space-y-10 bg-white">
-                                <form id="mainProblemForm" onSubmit={handleSaveProblem} className="space-y-10">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                                        <div className="space-y-6">
-                                            <div>
-                                                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">Question Type</label>
-                                                <select className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 outline-none focus:border-[#ff8c00]">
-                                                    <option>Programming</option>
-                                                    <option>Multiple Choice</option>
-                                                </select>
-                                            </div>
-                                            <div>
-                                                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">Question Title</label>
-                                                <input 
-                                                    type="text" 
-                                                    value={editingProblem.title || ''} 
-                                                    onChange={e => setEditingProblem({...editingProblem, title: e.target.value})}
-                                                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 outline-none focus:border-[#ff8c00]"
-                                                    placeholder="Print the following output"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">Marks</label>
-                                                <input 
-                                                    type="number" 
-                                                    value={editingProblem.points || 0} 
-                                                    onChange={e => setEditingProblem({...editingProblem, points: Number(e.target.value)})}
-                                                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 outline-none focus:border-[#ff8c00]"
-                                                />
-                                            </div>
-                                        </div>
-                                        <div className="space-y-6">
-                                            <div>
-                                                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">Level</label>
-                                                <select 
-                                                    value={editingProblem.difficulty} 
-                                                    onChange={e => setEditingProblem({...editingProblem, difficulty: e.target.value as Difficulty})}
-                                                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 outline-none focus:border-[#ff8c00]"
-                                                >
-                                                    <option value="L0">Level - 0</option>
-                                                    <option value="L1">Level - 1</option>
-                                                    <option value="L2">Level - 2</option>
-                                                </select>
-                                            </div>
-                                            <div>
-                                                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">Language</label>
-                                                <select className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 outline-none focus:border-[#ff8c00]">
-                                                    <option>English</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-4">
-                                        <label className="text-[11px] font-black text-slate-800 uppercase tracking-widest">Question Data</label>
-                                        <div className="border border-slate-200 rounded-xl overflow-hidden focus-within:border-[#ff8c00] transition-colors bg-slate-50">
-                                            <RichToolbar />
-                                            <textarea 
-                                                value={editingProblem.description} 
-                                                onChange={e => setEditingProblem({...editingProblem, description: e.target.value})}
-                                                className="w-full h-48 p-4 text-sm text-slate-600 outline-none resize-none bg-transparent"
-                                                placeholder="Enter detailed question statement..."
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-4">
-                                        <label className="text-[11px] font-black text-slate-800 uppercase tracking-widest">Input Format</label>
-                                        <div className="border border-slate-200 rounded-xl overflow-hidden focus-within:border-[#ff8c00] transition-colors bg-slate-50">
-                                            <RichToolbar />
-                                            <textarea 
-                                                value={editingProblem.inputFormat} 
-                                                onChange={e => setEditingProblem({...editingProblem, inputFormat: e.target.value})}
-                                                className="w-full h-32 p-4 text-sm text-slate-600 outline-none resize-none bg-transparent"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-4">
-                                        <label className="text-[11px] font-black text-slate-800 uppercase tracking-widest">Output Format</label>
-                                        <div className="border border-slate-200 rounded-xl overflow-hidden focus-within:border-[#ff8c00] transition-colors bg-slate-50">
-                                            <RichToolbar />
-                                            <textarea 
-                                                value={editingProblem.outputFormat} 
-                                                onChange={e => setEditingProblem({...editingProblem, outputFormat: e.target.value})}
-                                                className="w-full h-32 p-4 text-sm text-slate-600 outline-none resize-none bg-transparent"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-4">
-                                        <label className="text-[11px] font-black text-slate-800 uppercase tracking-widest">Constraints</label>
-                                        <div className="border border-slate-200 rounded-xl overflow-hidden focus-within:border-[#ff8c00] transition-colors bg-slate-50">
-                                            <RichToolbar />
-                                            <textarea 
-                                                value={editingProblem.constraints} 
-                                                onChange={e => setEditingProblem({...editingProblem, constraints: e.target.value})}
-                                                className="w-full h-32 p-4 text-sm text-slate-600 outline-none resize-none bg-transparent"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-4">
-                                        <label className="text-[11px] font-black text-slate-800 uppercase tracking-widest">Answer Reference</label>
-                                        <div className="border border-[#ff8c00]/20 rounded-xl overflow-hidden font-mono bg-orange-50/30">
-                                            <div className="px-4 py-2 border-b border-[#ff8c00]/10 flex items-center gap-2">
-                                                <FileCode2 size={14} className="text-[#ff8c00]" />
-                                                <span className="text-[10px] text-[#ff8c00] uppercase tracking-widest font-bold">Solution Reference</span>
-                                            </div>
-                                            <textarea 
-                                                value={editingProblem.sampleAnswer || ''} 
-                                                onChange={e => setEditingProblem({...editingProblem, sampleAnswer: e.target.value})}
-                                                className="w-full h-40 p-4 text-sm text-slate-700 bg-transparent outline-none resize-none"
-                                                spellCheck="false"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-6">
-                                        <div className="flex items-center justify-between">
-                                            <label className="text-[11px] font-black text-slate-800 uppercase tracking-widest">Code Stub</label>
-                                        </div>
-                                        <div className="border border-slate-200 rounded-xl overflow-hidden p-6 space-y-4 bg-slate-50">
-                                            <select className="w-full md:w-48 p-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-500">
-                                                <option>Python</option>
-                                            </select>
-                                            <textarea 
-                                                value={editingProblem.starterCode}
-                                                onChange={e => setEditingProblem({...editingProblem, starterCode: e.target.value})}
-                                                className="w-full h-32 p-4 bg-white border border-slate-200 rounded-lg outline-none text-xs font-mono text-slate-700"
-                                                placeholder="Enter boiler plate code stub here..."
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-6">
-                                        <div className="flex items-center justify-between">
-                                            <label className="text-[11px] font-black text-slate-800 uppercase tracking-widest">Test cases</label>
-                                            <button 
-                                                type="button" 
-                                                onClick={() => setEditingProblem({...editingProblem, testCases: [...(editingProblem.testCases || []), { input: '', expectedOutput: '', isHidden: false, isSample: false }]})}
-                                                className="px-5 py-2 bg-[#ff8c00] text-white text-[10px] font-bold uppercase tracking-widest rounded-full shadow-md hover:bg-orange-600 transition-colors"
-                                            >
-                                                Add Test case
-                                            </button>
-                                        </div>
-                                        
-                                        <div className="space-y-4">
-                                            {editingProblem.testCases?.map((tc, idx) => (
-                                                <div key={idx} className="border border-slate-200 rounded-xl p-4 md:p-8 relative space-y-6 group bg-white shadow-sm">
-                                                    <button 
-                                                        type="button" 
-                                                        onClick={() => setEditingProblem({...editingProblem, testCases: editingProblem.testCases?.filter((_, i) => i !== idx)})}
-                                                        className="absolute top-4 right-4 md:top-6 md:right-6 p-2 text-slate-300 hover:text-red-500 transition-colors"
-                                                    >
-                                                        <Trash2 size={18} />
-                                                    </button>
-
-                                                    <div className="w-full md:w-1/3">
-                                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 block">Is Sample</label>
-                                                        <select 
-                                                            value={tc.isSample ? 'Yes' : 'No'}
-                                                            onChange={e => {
-                                                                const newTC = [...(editingProblem.testCases || [])];
-                                                                newTC[idx].isSample = e.target.value === 'Yes';
-                                                                setEditingProblem({...editingProblem, testCases: newTC});
-                                                            }}
-                                                            className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 outline-none focus:border-[#ff8c00]"
-                                                        >
-                                                            <option>No</option>
-                                                            <option>Yes</option>
-                                                        </select>
-                                                    </div>
-
-                                                    <div>
-                                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 block">Input Data</label>
-                                                        <textarea 
-                                                            value={tc.input}
-                                                            onChange={e => {
-                                                                const newTC = [...(editingProblem.testCases || [])];
-                                                                newTC[idx].input = e.target.value;
-                                                                setEditingProblem({...editingProblem, testCases: newTC});
-                                                            }}
-                                                            className="w-full p-4 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 outline-none focus:border-[#ff8c00] h-20 resize-none"
-                                                        />
-                                                    </div>
-
-                                                    <div>
-                                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 block">Output Data</label>
-                                                        <textarea 
-                                                            value={tc.expectedOutput}
-                                                            onChange={e => {
-                                                                const newTC = [...(editingProblem.testCases || [])];
-                                                                newTC[idx].expectedOutput = e.target.value;
-                                                                setEditingProblem({...editingProblem, testCases: newTC});
-                                                            }}
-                                                            className="w-full p-4 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 outline-none focus:border-[#ff8c00] h-20 resize-none"
-                                                        />
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    <div className="flex justify-end pt-10 pb-20 md:pb-0">
-                                        <button 
-                                            type="submit"
-                                            className="px-10 py-3 bg-[#ff8c00] text-white font-black text-xs uppercase tracking-[0.2em] rounded-xl shadow-xl hover:scale-105 transition-transform"
-                                        >
-                                            Submit Changes
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
+                {/* Edit Problem Modal Logic would go here (Simplified for view) */}
+                 {isEditingProblem && (
+                    <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
+                       <div className="bg-white w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl p-6 shadow-2xl">
+                          <div className="flex justify-between items-center mb-6">
+                             <h3 className="font-bold text-lg">Edit Problem</h3>
+                             <button onClick={() => setIsEditingProblem(false)}><X size={20} className="text-slate-400"/></button>
+                          </div>
+                          <form onSubmit={handleSaveProblem} className="space-y-4">
+                             <input className="w-full p-3 bg-slate-50 rounded-xl border border-slate-200" placeholder="Problem Title" value={editingProblem.title} onChange={e => setEditingProblem({...editingProblem, title: e.target.value})} required/>
+                             <textarea className="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 h-24" placeholder="Description" value={editingProblem.description} onChange={e => setEditingProblem({...editingProblem, description: e.target.value})} required/>
+                             <textarea className="w-full p-3 bg-slate-900 text-emerald-400 font-mono text-sm rounded-xl h-32" placeholder="Starter Code" value={editingProblem.starterCode} onChange={e => setEditingProblem({...editingProblem, starterCode: e.target.value})} required/>
+                             <div className="flex justify-end pt-4">
+                                <button type="submit" className="px-6 py-2 bg-[#ff8c00] text-white font-bold rounded-xl uppercase text-xs tracking-widest">Save Changes</button>
+                             </div>
+                          </form>
+                       </div>
                     </div>
-                )}
+                 )}
              </div>
           )}
           
+          {activeTab === 'personnel' && (
+             <div className="max-w-6xl mx-auto space-y-12 animate-in fade-in">
+                 
+                 {/* Student Registry Table */}
+                 <div>
+                    <h2 className="text-3xl font-heading font-black text-slate-800 uppercase tracking-tighter mb-6">Student <span className="text-[#ff8c00]">Registry</span></h2>
+                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                       <table className="w-full text-left">
+                          <thead className="bg-slate-50 border-b border-slate-100">
+                             <tr>
+                                <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Name</th>
+                                <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Email</th>
+                                <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">College</th>
+                                <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Payment Status</th>
+                                <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
+                             </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-50">
+                             {allStudents.map(student => (
+                                <tr key={student.id} className="hover:bg-slate-50/50">
+                                   <td className="p-4 text-sm font-bold text-slate-700">{student.name}</td>
+                                   <td className="p-4 text-xs font-medium text-slate-500">{student.email}</td>
+                                   <td className="p-4 text-xs font-bold text-slate-600">{student.college || 'N/A'}</td>
+                                   <td className="p-4">
+                                      {student.paymentStatus === 'APPROVED' ? (
+                                         <span className="px-2 py-1 bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-widest rounded-md flex items-center w-fit gap-1">
+                                            <CheckCircle size={10}/> Active
+                                         </span>
+                                      ) : student.paymentStatus === 'PENDING_APPROVAL' ? (
+                                         <span className="px-2 py-1 bg-yellow-50 text-yellow-600 text-[10px] font-black uppercase tracking-widest rounded-md flex items-center w-fit gap-1 animate-pulse">
+                                            <Clock size={10}/> Pending
+                                         </span>
+                                      ) : (
+                                         <span className="px-2 py-1 bg-slate-100 text-slate-400 text-[10px] font-black uppercase tracking-widest rounded-md">
+                                            Unpaid
+                                         </span>
+                                      )}
+                                   </td>
+                                   <td className="p-4 text-right">
+                                      {student.paymentStatus === 'PENDING_APPROVAL' && (
+                                         <div className="flex justify-end gap-2">
+                                            <button onClick={() => approveStudent(student.id)} className="px-3 py-1 bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-bold uppercase tracking-widest rounded shadow-sm">Approve</button>
+                                            <button onClick={() => rejectStudent(student.id)} className="px-3 py-1 bg-red-50 text-red-500 hover:bg-red-100 text-[10px] font-bold uppercase tracking-widest rounded">Reject</button>
+                                         </div>
+                                      )}
+                                   </td>
+                                </tr>
+                             ))}
+                             {allStudents.length === 0 && (
+                                <tr><td colSpan={5} className="p-8 text-center text-slate-400 text-xs uppercase tracking-widest">No Students Found</td></tr>
+                             )}
+                          </tbody>
+                       </table>
+                    </div>
+                 </div>
+
+                 <div className="border-t border-slate-200 pt-8">
+                    <div>
+                        <h2 className="text-xl font-heading font-black text-slate-800 uppercase tracking-tighter mb-2">Bulk <span className="text-slate-400">Import</span></h2>
+                        <p className="text-sm text-slate-500 mb-6">Upload batch data to register multiple students at once.</p>
+                    </div>
+
+                    <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm space-y-6">
+                        <div className="flex items-start gap-4 p-4 bg-blue-50 text-blue-700 rounded-xl text-sm">
+                            <FileSpreadsheet className="shrink-0 mt-0.5" size={18}/>
+                            <div>
+                                <p className="font-bold mb-1">CSV Format Required</p>
+                                <p className="font-mono text-xs">Name, Email, Password, College</p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <textarea 
+                            value={csvData}
+                            onChange={(e) => setCsvData(e.target.value)}
+                            className="w-full h-32 p-4 bg-slate-50 border border-slate-200 rounded-xl font-mono text-xs text-slate-700 focus:border-[#ff8c00] outline-none"
+                            placeholder={`John Doe, john@example.com, 123456, JNTU\nJane Smith, jane@example.com, securepass, OU`}
+                            />
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                            <p className="text-sm font-bold text-emerald-600">{uploadStatus}</p>
+                            <button 
+                            onClick={handleBulkUpload}
+                            className="px-8 py-3 bg-[#ff8c00] hover:bg-orange-600 text-white rounded-xl font-black text-xs uppercase tracking-widest flex items-center gap-2 shadow-lg transition-all"
+                            >
+                            <UploadCloud size={16}/> Process Upload
+                            </button>
+                        </div>
+                    </div>
+                 </div>
+             </div>
+          )}
+
           {activeTab === 'telemetry' && (
             <div className="flex flex-col items-center justify-center h-full space-y-4 text-slate-300">
                <BarChart3 size={48} className="animate-pulse" />

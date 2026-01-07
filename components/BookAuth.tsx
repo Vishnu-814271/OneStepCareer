@@ -1,20 +1,18 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { User } from '../types';
 import { dataService } from '../services/dataService';
 import { 
-  GraduationCap, 
-  Terminal, 
-  ArrowRight, 
-  Cpu, 
-  Layers, 
-  Binary, 
-  BrainCircuit, 
-  Fingerprint,
   Code2,
-  Sparkles,
-  Zap,
-  Globe
+  Lock,
+  Mail,
+  User as UserIcon,
+  Loader2,
+  Building2,
+  CheckCircle,
+  Globe,
+  Award,
+  Users
 } from 'lucide-react';
 
 interface BookAuthProps {
@@ -22,115 +20,192 @@ interface BookAuthProps {
 }
 
 const BookAuth: React.FC<BookAuthProps> = ({ onLogin }) => {
-  const handleSelectRole = (role: 'ADMIN' | 'STUDENT') => {
-    const user = dataService.getPortalUser(role);
-    onLogin(user);
+  const [activeTab, setActiveTab] = useState<'STUDENT' | 'FACULTY' | 'ADMIN'>('STUDENT');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  // Form States
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    
+    setTimeout(() => {
+        const user = dataService.authenticateUser(email, password);
+        if (user) {
+            // Verify role match
+            if ((activeTab === 'STUDENT' && user.role === 'STUDENT') ||
+                (activeTab === 'FACULTY' && user.role === 'FACULTY') ||
+                (activeTab === 'ADMIN' && user.role === 'ADMIN')) {
+                 onLogin(user);
+            } else {
+                 setError(`Access Denied. Not a ${activeTab} account.`);
+                 setLoading(false);
+            }
+        } else {
+            setError("Invalid credentials. Please checking your entry.");
+            setLoading(false);
+        }
+    }, 800);
   };
 
-  const tracks = [
-    { name: 'Python', icon: <Terminal size={20} />, color: 'text-brand-cyan' },
-    { name: 'ML', icon: <BrainCircuit size={20} />, color: 'text-brand-orange' },
-    { name: 'AI', icon: <Cpu size={20} />, color: 'text-brand-blue' },
-    { name: 'Java', icon: <Layers size={20} />, color: 'text-brand-cyan' },
-    { name: 'C Language', icon: <Binary size={20} />, color: 'text-brand-orange' },
-  ];
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-600 via-orange-500 to-amber-500 flex flex-col items-center relative overflow-hidden font-sans">
-      {/* Immersive Background */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-0 left-0 w-full h-full bg-grid-pattern opacity-[0.1]"></div>
-        <div className="absolute top-[-10%] right-[-5%] w-[300px] md:w-[600px] h-[300px] md:h-[600px] bg-white/10 rounded-full blur-[80px] md:blur-[120px] animate-pulse"></div>
-        <div className="absolute bottom-[-10%] left-[-5%] w-[300px] md:w-[500px] h-[300px] md:h-[500px] bg-brand-cyan/10 rounded-full blur-[80px] md:blur-[120px] animate-pulse"></div>
+    <div className="min-h-screen bg-white flex flex-col md:flex-row font-sans">
+      
+      {/* LEFT SIDE: COMPANY INFO & MARKETING */}
+      <div className="w-full md:w-[60%] bg-[#0f172a] text-white p-8 md:p-16 flex flex-col justify-between relative overflow-hidden">
+         {/* Background Elements */}
+         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-orange-500/10 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2"></div>
+         <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-cyan-500/10 rounded-full blur-[100px] translate-y-1/2 -translate-x-1/2"></div>
+
+         <div className="relative z-10">
+            <div className="flex items-center gap-3 mb-10">
+               <div className="bg-orange-600 p-2.5 rounded-xl">
+                 <Code2 size={24} className="text-white" />
+               </div>
+               <span className="font-heading font-black text-2xl tracking-tighter uppercase">Tech<span className="text-orange-500">Nexus</span></span>
+            </div>
+
+            <h1 className="text-4xl md:text-6xl font-black mb-6 leading-tight">
+               Bridging the Gap Between <br/>
+               <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-amber-400">Education & Industry</span>
+            </h1>
+            
+            <p className="text-slate-400 text-lg leading-relaxed max-w-2xl mb-12">
+               TechNexus Academy provides an enterprise-grade learning ecosystem for colleges. 
+               We empower students with AI-driven mentorship, industrial simulations, and globally recognized certifications.
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+               <div className="flex gap-4">
+                  <div className="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center shrink-0 text-cyan-400"><Globe size={20}/></div>
+                  <div>
+                     <h3 className="font-bold text-white mb-1">Standardized Curriculum</h3>
+                     <p className="text-sm text-slate-400">Unified learning path for Python, Java, AI across all semesters.</p>
+                  </div>
+               </div>
+               <div className="flex gap-4">
+                  <div className="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center shrink-0 text-orange-400"><Users size={20}/></div>
+                  <div>
+                     <h3 className="font-bold text-white mb-1">Faculty Dashboard</h3>
+                     <p className="text-sm text-slate-400">Real-time performance tracking and centralized student management.</p>
+                  </div>
+               </div>
+               <div className="flex gap-4">
+                  <div className="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center shrink-0 text-emerald-400"><Award size={20}/></div>
+                  <div>
+                     <h3 className="font-bold text-white mb-1">Skill Certification</h3>
+                     <p className="text-sm text-slate-400">Automated evaluation and instant certification generation.</p>
+                  </div>
+               </div>
+               <div className="flex gap-4">
+                  <div className="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center shrink-0 text-violet-400"><Code2 size={20}/></div>
+                  <div>
+                     <h3 className="font-bold text-white mb-1">Interactive CodeLabs</h3>
+                     <p className="text-sm text-slate-400">Zero-setup browser based coding environments.</p>
+                  </div>
+               </div>
+            </div>
+         </div>
+
+         <div className="relative z-10 pt-12 border-t border-white/10 mt-12 flex items-center justify-between text-xs text-slate-500 uppercase tracking-widest">
+            <span>© 2025 TechNexus Corp.</span>
+            <span>Enterprise Solution v4.0</span>
+         </div>
       </div>
 
-      <div className="w-full max-w-7xl z-10 px-6 py-8 md:py-12 flex flex-col items-center">
-        {/* Top Branding */}
-        <div className="w-full flex justify-between items-center mb-12 md:mb-20 animate-in fade-in duration-700">
-          <div className="flex items-center gap-3">
-            <div className="bg-white/20 p-2.5 rounded-xl border border-white/30">
-              <Code2 size={24} className="text-white" />
+      {/* RIGHT SIDE: LOGIN FORM */}
+      <div className="w-full md:w-[40%] bg-slate-50 flex items-center justify-center p-6 md:p-12">
+         <div className="w-full max-w-md bg-white rounded-3xl shadow-xl p-8 border border-slate-100">
+            <div className="text-center mb-8">
+               <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tight mb-2">Portal Access</h2>
+               <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Select your operational role</p>
             </div>
-            <span className="font-heading font-black text-xl md:text-2xl text-white tracking-tighter uppercase">Tech<span className="text-white/80">Nexus</span></span>
-          </div>
-          <button 
-            onClick={() => handleSelectRole('ADMIN')}
-            className="text-[10px] font-black text-white/50 uppercase tracking-widest hover:text-white transition-colors"
-          >
-            Admin Access
-          </button>
-        </div>
 
-        {/* Hero Section */}
-        <div className="text-center space-y-6 md:space-y-8 mb-16 md:mb-24 max-w-4xl animate-in slide-in-from-top-10 duration-1000 px-2 md:px-0">
-          <div className="inline-flex items-center gap-3 px-6 py-2 rounded-full bg-white/10 border border-white/20 text-white text-[10px] font-black uppercase tracking-[0.4em]">
-            <Fingerprint size={14} className="animate-pulse" /> Student Verified Platform
-          </div>
-          <h1 className="text-5xl md:text-7xl lg:text-9xl font-heading font-black text-white tracking-tighter leading-none drop-shadow-sm">
-            ENGINEER YOUR <span className="text-white/80 italic">FUTURE.</span>
-          </h1>
-          <p className="text-orange-50 text-base md:text-xl font-medium leading-relaxed max-w-2xl mx-auto italic">
-            "Where technical mastery meets industrial opportunity." The most advanced learning environment designed specifically for students.
-          </p>
-          
-          <div className="flex flex-col md:flex-row items-center justify-center gap-6 pt-6 w-full">
-            <button 
-              onClick={() => handleSelectRole('STUDENT')}
-              className="px-14 py-6 bg-white text-orange-600 rounded-[28px] font-black text-sm uppercase tracking-[0.2em] shadow-2xl flex items-center justify-center gap-4 hover:scale-105 active:scale-95 transition-all w-full md:w-auto hover:bg-orange-50"
-            >
-              Start Learning <ArrowRight size={20} />
-            </button>
-            <div className="flex items-center gap-4 text-white/60 text-[10px] font-black uppercase tracking-widest">
-              <Zap size={14} className="text-white" /> 14.2k Active Students
+            {/* Role Tabs */}
+            <div className="flex p-1 bg-slate-100 rounded-xl mb-8">
+               <button 
+                  onClick={() => setActiveTab('STUDENT')}
+                  className={`flex-1 py-2.5 text-xs font-black uppercase tracking-wider rounded-lg transition-all ${activeTab === 'STUDENT' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+               >
+                  Student
+               </button>
+               <button 
+                  onClick={() => setActiveTab('FACULTY')}
+                  className={`flex-1 py-2.5 text-xs font-black uppercase tracking-wider rounded-lg transition-all ${activeTab === 'FACULTY' ? 'bg-white text-orange-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+               >
+                  Faculty
+               </button>
+               <button 
+                  onClick={() => setActiveTab('ADMIN')}
+                  className={`flex-1 py-2.5 text-xs font-black uppercase tracking-wider rounded-lg transition-all ${activeTab === 'ADMIN' ? 'bg-white text-cyan-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+               >
+                  Admin
+               </button>
             </div>
-          </div>
-        </div>
 
-        {/* Technical Tracks Grid */}
-        <div className="w-full grid grid-cols-2 md:grid-cols-5 gap-4 animate-in slide-in-from-bottom-10 duration-1000 delay-200">
-          {tracks.map((track, idx) => (
-            <div key={idx} className="bg-white/10 border border-white/20 p-6 rounded-[32px] flex flex-col items-center group hover:bg-white/20 hover:border-white/40 transition-all cursor-default backdrop-blur-sm">
-              <div className={`w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform text-white`}>
-                {track.icon}
-              </div>
-              <span className="text-[10px] font-black text-white uppercase tracking-widest">{track.name}</span>
-            </div>
-          ))}
-        </div>
+            <form onSubmit={handleLogin} className="space-y-5">
+               <div className="space-y-1">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center justify-between">
+                     Email Identifier
+                     {activeTab === 'FACULTY' && <span className="text-orange-500 text-[9px] flex items-center gap-1"><Building2 size={10}/> College Domain</span>}
+                  </label>
+                  <div className="relative">
+                     <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                     <input 
+                        type="email" 
+                        required
+                        value={email}
+                        onChange={e => setEmail(e.target.value)}
+                        className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition-all" 
+                        placeholder={activeTab === 'STUDENT' ? "student@college.edu" : activeTab === 'FACULTY' ? "faculty@college.edu" : "admin@technexus.com"}
+                     />
+                  </div>
+               </div>
 
-        {/* Feature Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-20 md:mt-32 w-full">
-          <div className="bg-white/10 rounded-[40px] p-8 md:p-10 border border-white/20 hover:border-white/40 transition-all group backdrop-blur-md">
-            <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center text-white mb-8">
-              <Sparkles size={28} />
-            </div>
-            <h3 className="text-xl font-black text-white uppercase tracking-tight mb-4">AI Tutor Assistance</h3>
-            <p className="text-orange-50 text-sm leading-relaxed">Personalized technical guidance available 24/7 for all course tracks to help you solve problems.</p>
-          </div>
-          <div className="bg-white/10 rounded-[40px] p-8 md:p-10 border border-white/20 hover:border-white/40 transition-all group backdrop-blur-md">
-            <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center text-white mb-8">
-              <GraduationCap size={28} />
-            </div>
-            <h3 className="text-xl font-black text-white uppercase tracking-tight mb-4">Student Certification</h3>
-            <p className="text-orange-50 text-sm leading-relaxed">Earn verified credentials recognized by global technical leaders to boost your student profile.</p>
-          </div>
-          <div className="bg-white/10 rounded-[40px] p-8 md:p-10 border border-white/20 hover:border-white/40 transition-all group backdrop-blur-md">
-            <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center text-white mb-8">
-              <Globe size={28} />
-            </div>
-            <h3 className="text-xl font-black text-white uppercase tracking-tight mb-4">Global Student Network</h3>
-            <p className="text-orange-50 text-sm leading-relaxed">Connect, chat, and collaborate with thousands of other engineering students worldwide.</p>
-          </div>
-        </div>
+               <div className="space-y-1">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Secure Password</label>
+                  <div className="relative">
+                     <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                     <input 
+                        type="password" 
+                        required
+                        value={password}
+                        onChange={e => setPassword(e.target.value)}
+                        className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition-all" 
+                        placeholder="••••••••"
+                     />
+                  </div>
+               </div>
 
-        {/* Footer Meta */}
-        <div className="mt-20 md:mt-32 pt-12 border-t border-white/10 w-full flex flex-col md:flex-row items-center justify-between gap-6 opacity-60 pb-10">
-          <span className="text-[9px] font-black text-white uppercase tracking-[0.5em] text-center md:text-left">© 2025 TechNexus Academy // Student Edition</span>
-          <div className="flex gap-8 text-[9px] font-black text-white uppercase tracking-widest">
-            <span>Student Privacy</span>
-            <span>Academic Standards</span>
-          </div>
-        </div>
+               {error && (
+                  <div className="p-3 bg-red-50 text-red-500 text-xs font-bold rounded-lg text-center animate-shake flex items-center justify-center gap-2">
+                     <Lock size={12} /> {error}
+                  </div>
+               )}
+
+               <button 
+                  type="submit" 
+                  disabled={loading}
+                  className={`w-full py-4 rounded-xl font-black text-xs uppercase tracking-[0.2em] shadow-xl transition-all flex items-center justify-center gap-2 text-white mt-4 ${
+                     activeTab === 'STUDENT' ? 'bg-slate-900 hover:bg-slate-800' :
+                     activeTab === 'FACULTY' ? 'bg-orange-600 hover:bg-orange-500 shadow-orange-500/20' :
+                     'bg-cyan-600 hover:bg-cyan-500 shadow-cyan-500/20'
+                  }`}
+               >
+                  {loading ? <Loader2 size={16} className="animate-spin" /> : 'Authenticate Access'}
+               </button>
+            </form>
+
+            <div className="mt-8 text-center border-t border-slate-100 pt-6">
+               <p className="text-xs text-slate-400 font-medium">
+                  Having trouble? <a href="#" className="text-slate-800 font-bold hover:underline">Contact System Admin</a>
+               </p>
+            </div>
+         </div>
       </div>
     </div>
   );

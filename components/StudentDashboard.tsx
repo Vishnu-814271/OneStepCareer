@@ -1,21 +1,20 @@
 
 import React, { useState, useEffect } from 'react';
-import { User, Problem, Difficulty, CourseModule } from '../types';
+import { User, Problem, Difficulty, CourseModule, LearningRecommendation } from '../types';
 import CodeLab from './CodeLab';
 import { dataService } from '../services/dataService';
-import { Terminal, BookOpen, ChevronRight, User as UserIcon, LogOut, ArrowLeft, Layers, Play, Library, FolderGit2 } from 'lucide-react';
-import ResumeBuilder from './ResumeBuilder';
+import { getLearningRecommendation } from '../services/geminiService';
+import { 
+  Terminal, BookOpen, ChevronRight, User as UserIcon, LogOut, ArrowLeft, Layers, Play, Library, Sparkles, BrainCircuit, Lightbulb, 
+  Coffee, Cpu, Activity, Database, GitMerge, RefreshCw, Box, List, ShieldAlert, HardDrive, TrendingUp, GitBranch, Share2, Search, MessageSquare 
+} from 'lucide-react';
 
 interface StudentDashboardProps {
   user: User;
   onLogout: () => void;
 }
 
-type View = 'curriculum' | 'career';
-
 const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) => {
-  const [activeView, setActiveView] = useState<View>('curriculum');
-  
   const [selectedCourse, setSelectedCourse] = useState<string | null>(null);
   const [selectedTopicGroup, setSelectedTopicGroup] = useState<string | null>(null);
   const [selectedModule, setSelectedModule] = useState<CourseModule | null>(null);
@@ -24,11 +23,16 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
   const [activeProblemSet, setActiveProblemSet] = useState<Problem[]>([]);
   
   const [currentUser, setCurrentUser] = useState<User>(user);
+  
+  // AI Recommendation State
+  const [recommendation, setRecommendation] = useState<LearningRecommendation | null>(null);
+  const [isLoadingRecommendation, setIsLoadingRecommendation] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
      const freshUser = dataService.getUserById(currentUser.id);
      if (freshUser) setCurrentUser(freshUser);
-  }, [isExamActive, activeView, currentUser.id]);
+  }, [isExamActive, currentUser.id]);
 
   const handleCourseSelect = (course: string) => {
     setSelectedCourse(course);
@@ -53,8 +57,44 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
         p.module === selectedModule.title && 
         p.difficulty === selectedLevel
       );
-      setActiveProblemSet(problems);
-      setIsExamActive(true);
+      if (problems.length > 0) {
+        setActiveProblemSet(problems);
+        setIsExamActive(true);
+      } else {
+        alert("No problems found for this module yet. Please try another.");
+      }
+    }
+  };
+
+  const handleGetRecommendation = async () => {
+     setIsLoadingRecommendation(true);
+     setError(null);
+     try {
+       const allModules = dataService.getModules();
+       const result = await getLearningRecommendation(currentUser, allModules);
+       if (result) {
+         setRecommendation(result);
+       } else {
+         setError("Could not generate recommendation. Please check your network or try again.");
+       }
+     } catch (err) {
+       setError("System Advisor is currently offline.");
+     } finally {
+       setIsLoadingRecommendation(false);
+     }
+  };
+
+  const handleApplyRecommendation = () => {
+    if (recommendation) {
+        // Attempt to find the module and navigate
+        const allModules = dataService.getModules();
+        const target = allModules.find(m => m.title === recommendation.recommendedModule);
+        if (target) {
+            setSelectedCourse(target.language);
+            setSelectedTopicGroup(target.category);
+            setSelectedModule(target);
+            setRecommendation(null); // Clear rec after applying
+        }
     }
   };
 
@@ -72,7 +112,39 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
     setSelectedCourse(null);
     setSelectedTopicGroup(null);
     setSelectedModule(null);
-    setActiveView('curriculum');
+  };
+
+  const getLanguageIcon = (lang: string) => {
+      switch(lang.toLowerCase()) {
+          case 'python': return <Terminal size={24} />;
+          case 'java': return <Coffee size={24} />;
+          case 'c': return <Cpu size={24} />;
+          case 'machine learning': return <Activity size={24} />;
+          case 'artificial intelligence': return <BrainCircuit size={24} />;
+          default: return <Library size={24} />;
+      }
+  };
+
+  const getModuleIcon = (iconName: string | undefined) => {
+    switch(iconName) {
+      case 'Terminal': return <Terminal size={22} />;
+      case 'GitMerge': return <GitMerge size={22} />;
+      case 'RefreshCw': return <RefreshCw size={22} />;
+      case 'Database': return <Database size={22} />;
+      case 'Coffee': return <Coffee size={22} />;
+      case 'Box': return <Box size={22} />;
+      case 'List': return <List size={22} />;
+      case 'ShieldAlert': return <ShieldAlert size={22} />;
+      case 'Cpu': return <Cpu size={22} />;
+      case 'HardDrive': return <HardDrive size={22} />;
+      case 'TrendingUp': return <TrendingUp size={22} />;
+      case 'GitBranch': return <GitBranch size={22} />;
+      case 'Share2': return <Share2 size={22} />;
+      case 'Search': return <Search size={22} />;
+      case 'BrainCircuit': return <BrainCircuit size={22} />;
+      case 'MessageSquare': return <MessageSquare size={22} />;
+      default: return <Terminal size={22} />;
+    }
   };
 
   if (isExamActive) {
@@ -96,21 +168,12 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
 
         <nav className="flex-1 p-2 lg:p-4 space-y-1 mt-4">
           <button 
-            onClick={() => { setActiveView('curriculum'); handleBackToAcademy(); }} 
-            className={`w-full p-3 rounded-xl flex items-center justify-center lg:justify-start gap-3 transition-all ${activeView === 'curriculum' ? 'bg-white/10 text-white shadow-inner' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+            onClick={handleBackToAcademy} 
+            className="w-full p-3 rounded-xl flex items-center justify-center lg:justify-start gap-3 transition-all bg-white/10 text-white shadow-inner"
             title="Academy Hub"
           >
             <BookOpen size={18} />
             <span className="hidden lg:block font-bold text-[10px] uppercase tracking-widest">Academy Hub</span>
-          </button>
-          
-          <button 
-            onClick={() => { setActiveView('career'); }} 
-            className={`w-full p-3 rounded-xl flex items-center justify-center lg:justify-start gap-3 transition-all ${activeView === 'career' ? 'bg-white/10 text-white shadow-inner' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
-            title="Career Portals"
-          >
-            <FolderGit2 size={18} />
-            <span className="hidden lg:block font-bold text-[10px] uppercase tracking-widest">Career Portals</span>
           </button>
         </nav>
 
@@ -127,7 +190,6 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
         <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-10 shrink-0">
           <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest overflow-hidden whitespace-nowrap">
              <span className="hover:text-slate-900 cursor-pointer" onClick={handleBackToAcademy}>Academy</span>
-             {activeView === 'career' && <><ChevronRight size={12}/> <span className="text-[#ff8c00] truncate">Industrial Resume Engine</span></>}
              {selectedCourse && <><ChevronRight size={12}/> <span className="hover:text-slate-900 cursor-pointer truncate hidden sm:inline" onClick={handleBackToCourses}>{selectedCourse}</span><span className="sm:hidden">...</span></>}
              {selectedTopicGroup && <><ChevronRight size={12}/> <span className="hover:text-slate-900 cursor-pointer truncate hidden sm:inline" onClick={handleBackToTopicGroups}>{selectedTopicGroup}</span></>}
              {selectedModule && <><ChevronRight size={12}/> <span className="text-brand-orange truncate">{selectedModule.title}</span></>}
@@ -144,22 +206,83 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
         </header>
 
         {/* Dynamic Content Area */}
-        <main className={`flex-1 overflow-hidden flex flex-col ${activeView === 'career' ? 'p-0' : 'p-4 md:p-10'}`}>
-          {activeView === 'curriculum' && (
+        <main className="flex-1 overflow-hidden flex flex-col p-4 md:p-10">
             <div className="flex-1 overflow-y-auto custom-scrollbar">
                {/* LEVEL 1: COURSE SELECTION */}
                {!selectedCourse && (
                   <div className="max-w-6xl mx-auto space-y-10 animate-fade-in pb-20">
+                    
+                    {/* Neural Advisor Section */}
+                    <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-[32px] p-8 md:p-10 text-white shadow-2xl relative overflow-hidden group">
+                       <div className="absolute top-0 right-0 w-64 h-64 bg-[#ff8c00]/10 rounded-full blur-[80px] group-hover:bg-[#ff8c00]/20 transition-all duration-1000"></div>
+                       <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
+                          <div>
+                             <div className="flex items-center gap-2 mb-2">
+                                <BrainCircuit size={20} className="text-[#ff8c00] animate-pulse"/>
+                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Neural Advisor</span>
+                             </div>
+                             <h2 className="text-2xl md:text-3xl font-heading font-black uppercase tracking-tight mb-2">
+                                {recommendation ? "Optimization Complete" : "Unsure where to begin?"}
+                             </h2>
+                             <p className="text-slate-400 text-sm max-w-lg leading-relaxed">
+                                {recommendation 
+                                  ? recommendation.reasoning
+                                  : "Our AI engine can analyze your performance metrics to suggest the optimal next step for your career path."
+                                }
+                             </p>
+                             {error && <p className="text-red-400 text-xs font-bold mt-2">{error}</p>}
+                             
+                             {recommendation && (
+                                <div className="mt-6 flex flex-wrap gap-4">
+                                   <div className="px-4 py-2 bg-white/5 rounded-lg border border-white/10 text-xs">
+                                      <span className="block text-[9px] text-slate-500 uppercase font-black">Target</span>
+                                      <span className="font-bold text-[#ff8c00]">{recommendation.recommendedModule}</span>
+                                   </div>
+                                   <div className="px-4 py-2 bg-white/5 rounded-lg border border-white/10 text-xs">
+                                      <span className="block text-[9px] text-slate-500 uppercase font-black">Effort</span>
+                                      <span className="font-bold text-white">{recommendation.estimatedEffort}</span>
+                                   </div>
+                                   <div className="px-4 py-2 bg-white/5 rounded-lg border border-white/10 text-xs">
+                                      <span className="block text-[9px] text-slate-500 uppercase font-black">Focus</span>
+                                      <span className="font-bold text-cyan-400">{recommendation.focusArea}</span>
+                                   </div>
+                                </div>
+                             )}
+                          </div>
+
+                          <div className="shrink-0">
+                             {!recommendation ? (
+                                <button 
+                                   onClick={handleGetRecommendation}
+                                   disabled={isLoadingRecommendation}
+                                   className="px-8 py-4 bg-white text-slate-900 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl hover:bg-[#ff8c00] hover:text-white transition-all flex items-center gap-3"
+                                >
+                                   {isLoadingRecommendation ? <Sparkles size={16} className="animate-spin" /> : <Sparkles size={16} />}
+                                   {isLoadingRecommendation ? "Analyzing Metrics..." : "Generate Suggestion"}
+                                </button>
+                             ) : (
+                                <button 
+                                   onClick={handleApplyRecommendation}
+                                   className="px-8 py-4 bg-[#ff8c00] text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl hover:bg-white hover:text-slate-900 transition-all flex items-center gap-3"
+                                >
+                                   <Lightbulb size={16} />
+                                   Start Recommended Module
+                                </button>
+                             )}
+                          </div>
+                       </div>
+                    </div>
+
                     <h1 className="text-3xl md:text-4xl font-heading font-black text-slate-900 uppercase tracking-tighter">Available <span className="text-slate-400">Certifications</span></h1>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       {dataService.getLanguages().map(lang => (
-                        <div key={lang} onClick={() => handleCourseSelect(lang)} className="bg-white border border-slate-200 p-8 rounded-[32px] cursor-pointer group hover:border-[#ff8c00] hover:shadow-2xl hover:shadow-orange-500/10 transition-all duration-500">
-                           <div className="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-[#ff8c00] group-hover:text-white transition-all mb-8 shadow-inner">
-                              <Library size={24} />
+                        <div key={lang} onClick={() => handleCourseSelect(lang)} className="bg-white border border-slate-200 p-8 rounded-[32px] cursor-pointer group hover:border-[#ff8c00] hover:shadow-2xl hover:shadow-orange-500/10 transition-all duration-500 relative overflow-hidden">
+                           <div className="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-[#ff8c00] group-hover:text-white transition-all mb-8 shadow-inner relative z-10">
+                              {getLanguageIcon(lang)}
                            </div>
-                           <h3 className="text-xl font-heading font-black text-slate-900 mb-2 uppercase tracking-tight">{lang}</h3>
-                           <p className="text-slate-500 text-sm mb-8 leading-relaxed font-medium italic">"Master the fundamentals and industrial applications of {lang}."</p>
-                           <div className="pt-6 border-t border-slate-50 flex items-center justify-between text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-brand-orange">
+                           <h3 className="text-xl font-heading font-black text-slate-900 mb-2 uppercase tracking-tight relative z-10">{lang}</h3>
+                           <p className="text-slate-500 text-sm mb-8 leading-relaxed font-medium italic relative z-10">"Master the fundamentals and industrial applications of {lang}."</p>
+                           <div className="pt-6 border-t border-slate-50 flex items-center justify-between text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-brand-orange relative z-10">
                               Initialize Module <ChevronRight size={14} />
                            </div>
                         </div>
@@ -196,7 +319,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
                         {dataService.getModulesByCategory(selectedCourse, selectedTopicGroup).map((mod) => (
                             <div key={mod.id} onClick={() => handleModuleSelect(mod)} className="bg-white p-6 md:p-8 rounded-3xl border border-slate-200 cursor-pointer group flex items-center gap-6 hover:border-[#ff8c00] shadow-sm transition-all duration-500">
                                <div className="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-slate-900 group-hover:text-white transition-all shadow-inner shrink-0">
-                                  <Terminal size={22} />
+                                  {getModuleIcon(mod.icon)}
                                </div>
                                <div className="flex-1 min-w-0">
                                   <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight leading-none mb-1 truncate">{mod.title}</h3>
@@ -221,9 +344,9 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
                         
                         <div className="grid gap-4">
                             {[
-                                { id: 'L0', title: 'L0: Foundational Principles', xp: 10 },
-                                { id: 'L1', title: 'L1: Industrial Implementation', xp: 20 },
-                                { id: 'L2', title: 'L2: Master Architectural Logic', xp: 30 }
+                                { id: 'L0', title: 'L0: Foundational Principles', xp: 8 },
+                                { id: 'L1', title: 'L1: Industrial Implementation', xp: 9 },
+                                { id: 'L2', title: 'L2: Master Architectural Logic', xp: 10 }
                             ].map((level) => (
                                <div 
                                  key={level.id} 
@@ -234,7 +357,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
                                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${selectedLevel === level.id ? 'bg-white/10 text-cyan-400' : 'bg-slate-50 text-slate-300'}`}><Layers size={18}/></div>
                                      <span className="break-words">{level.title}</span>
                                   </div>
-                                  <span className={`text-[11px] font-black uppercase tracking-[0.3em] ${selectedLevel === level.id ? 'text-[#ff8c00]' : 'text-slate-300'}`}>{level.xp} XP Units</span>
+                                  <span className={`text-[11px] font-black uppercase tracking-[0.3em] ${selectedLevel === level.id ? 'text-[#ff8c00]' : 'text-slate-300'}`}>{level.xp} MARKS</span>
                                </div>
                             ))}
                         </div>
@@ -250,13 +373,6 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) =
                   </div>
                )}
             </div>
-          )}
-
-          {activeView === 'career' && (
-            <div className="flex-1 h-full animate-fade-in overflow-hidden">
-               <ResumeBuilder currentUser={currentUser} />
-            </div>
-          )}
         </main>
       </div>
     </div>
